@@ -1,0 +1,23 @@
+<html>
+<head><title>The Chronicle Tracing Infrastructure</title>
+</head>
+<body>
+<h1>The Chronicle Tracing Infrastructure</h1>
+<h2>Architecture</h2>
+<p>There are four key components:
+  <dl>
+    <dt>Tracer
+    <dd>The tracer instruments a running program and logs memory and register changes, plus
+some other events, into a shared memory buffer
+    <dt>Indexer
+    <dd>The indexer process consumes the log and builds a) compressed indices that map
+space x time to events (reads, writes, executes) and b) a log of register change events,
+punctuated by full register dumps
+    <dt>Query Processor
+    <dd>Provides an asynchronous stream API for reconstructing the memory/register
+state of the program at any time, and also examining the indexes themselves
+    <dt>Application
+    <dd>Provides a debugging user interface which communicates with the query processor
+  </dl>
+</body>
+</html>

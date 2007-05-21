@@ -1,0 +1,526 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+  <title>Chronicle Query Protocol</title>
+</head>
+<body>
+<h1>The Chronicle Query Protocol</h1>
+
+<p>Messages are exchanged between a debugger and the query agent
+over a bidirectional stream. In the simplest configuration the query
+agent is spawned as a subprocess and messages are exchanged on its
+standard input and output.
+
+<p>Each message is a <a href="http://www.json.org">JSON</a> value in
+ASCII. Messages are delimited by single UNIX newlines ('\n'). Every
+message contains an <tt>id</tt> field identifying the query (see
+below). All debugger messages contain a <tt>cmd</tt> field identifying
+the type of message.
+
+<h2>Queries</h2>
+
+<p>The debugger initiates queries. The agent returns query results
+incrementally and asynchronously. The agent also returns progress
+indication. The debugger can cancel running queries. There can be
+many queries running simultaneously.
+
+<p>Every message includes an <tt>id</tt> field containing a unique
+integer identifier for the query. The debugger chooses the identifiers
+when it sends messages that initiate queries.
+
+<p>The debugger may send messages with command <tt>cancel</tt>. A
+cancel message requests termination of the the query with the given
+<tt>id</tt>. Cancel requests on queries that are not running are
+ignored.
+
+<p>The agent's messages to the debugger contain an <tt>id</tt> field
+identifying the query. They may also contain <tt>progress</tt> and
+<tt>progressMax</tt> fields with integer values; progressMax is an
+estimate of the overall duration of the query, and progress is an
+estimate of how far through that duration the agent is. They may also
+contain a <tt>terminated</tt> string field; if 'normal' then the query
+finished normally, if 'cancel' it was cancelled by the debugger, if
+'error' then it terminated due to error.
+
+<h2>Informational Messages</h2>
+
+<p>The query agent may send messages not associated with any query.
+These messages may or may not have a query <tt>id</tt> field. They contain
+a field <tt>message</tt> with a string code identifying the message.
+They also contain a <tt>severity</tt> field with one of the following
+values:
+<ul>
+<li><tt>info</tt>: this message is for informational/debugging use
+only. The user's attention is not required.
+<li><tt>warning</tt>: the user should be warned something may be wrong,
+but the system is not definitely in error.
+<li><tt>error</tt>: a nonfatal error has occurred and the query (if any)
+will be terminated.
+<li><tt>fatal</tt>: a fatal error has occurred and the query agent
+will exit.
+</ul>
+There will also be a <tt>text</tt> field containing English text
+describing the message. Depending on the message, there may be other fields.
+There may be an <tt>errno</tt> field containing a system error code and
+a <tt>errnotext</tt> field explaining that error code.
+
+<h2>Basic Information</h2>
+
+<p>The command name <tt>info</tt> identifies the basic information
+query. There are no other parameters.
+
+<p>The result value for info queries contains various fields:
+<ul>
+<li>String <tt>arch</tt> returns "amd64" or "x86".
+<li>String <tt>endian</tt> returns "little" or "big".
+<li>Array <tt>maps</tt> returns a list of the supported map names
+(strings) for this database.
+<li>Integer <tt>endTStamp</tt> returns the timestamp for the end
+of execution --- i.e., all executed instructions have timestamps
+less than endTStamp.
+</ul>
+
+<h2>Reads</h2>
+
+<p>Read queries obtain the values of memory or registers at a given
+timestamp.
+
+<p>The command name <tt>readMem</tt> identifies a memory read
+query. <tt>readReg</tt> identifies a register read query.
+
+<p>Read queries contain a <tt>TStamp</tt> field with the desired
+integer timestamp value.
+
+<p>Memory read queries contain a <tt>ranges</tt> field identifying the
+memory to examine.  This is an array of range objects. Each range object
+contains integer fields <tt>start</tt> and <tt>length</tt> describing
+the virtual addresses of interest.
+
+<p>Register read queries contain one field for each desired
+register. The field has the name of the register. The names are
+architecture-specifc except that "pc" always refers to the program
+counter and "thread" also gives the current thread ID (a synthetic
+token). Register names for x86 and AMD64 are:
+<ul>
+<li>General purpose registers "eax", "ebx", "ecx", "edx", "ebp", "esp",
+"esi" and "edi" (x86) or their "r" variants (AMD64)
+<li>"r8" to "r15" (AMD64)
+<li>"xmm0" to "xmm7" (x86) or "xmm15" (AMD64)
+<li>"fp0" to "fp7"
+<li>"fptop", an integer pseudo-register denoting the "top of stack"
+in the FP register array
+<li>MMX register values are available in the FP register array.
+</ul>
+The value of each register field denotes the number of low-order bits
+required from the register --- 8, 16, 32, 64 or 128. If no register
+fields are specified then the query returns all bits of all available
+registers. The values are encoded in big-endian hexadecimal strings.
+
+<p>For memory reads, each result value gives the contents of a memory
+range. Result values contain three fields: integer <tt>start</tt> with
+a address, integer <tt>length</tt> with a length and optionally
+<tt>bytes</tt> which is a string of hexadecimal byte values without
+separators. The string length will be two times <tt>length</tt>. If the
+<tt>bytes</tt> field is not present, then the memory range was unmapped
+or otherwise inaccessible at that time. The memory ranges returned may not
+correspond exactly to the ranges requested; the only guarantee is that
+if the query terminates normally then the union of the ranges returned
+equals the union of the ranges requested.
+
+<p>For register reads, each result value gives the contents of one or
+more registers. The register name is the field name and the corresponding
+field value is a string of hex digits, in big-endian (MSB first) format,
+up to the number of requested bits or the natural width of the
+register, whichever is smaller.
+
+<h2>Scans</h2>
+
+<p>Scan queries search <em>maps</em> for program events. Each event
+has a timestamp and an affected memory range. Some maps supply
+additional data for each event. The following maps are defined:
+<ul>
+<li><tt>INSTR_EXEC</tt>: Each event is the execution of a program
+instruction. The affected memory range is the bytes of the instruction.
+<li><tt>MEM_WRITE</tt>: Each event is a write to program memory.
+The affected memory range is the memory written. Each event also
+supplies the data written. In some cases (e.g., system calls)
+large quantities of data will be written in one event.
+<li><tt>MEM_READ</tt>: Each event is a read from program memory.
+The affected memory range is the memory read. This map can be
+disabled at trace generation time so may not be available. The
+list of available maps is given by the <tt>info</tt> query.
+In some cases (e.g., system calls) large quantities of data will
+be read in one event.
+<li><tt>ENTER_SP</tt>: Each event is the execution of a
+instruction transferring control to a function (normally a 'call'
+instruction but tail calls using jumps are also detected). The
+affected memory range is one pointer-size at the current value
+of the stack pointer <em>after the call</em>.
+<li><tt>MEM_MAP</tt>: Each event is a change to the process's
+memory map. The affected memory range is the memory mapped,
+unmapped or remapped. Each event has additional data describing the
+map operation. In some cases a MEM_MAP event is associated with
+one or more MEM_WRITE events describing the contents of the memory
+that has been mapped.
+</ul>
+Multiple events with the same map and timestamp can occur. Sometimes
+events can be `gmented, e.g., a write that straddles a page boundary
+might be reported as two events.
+
+<p>A scan query uses command <tt>scan</tt>. The <tt>beginTStamp</tt>
+and <tt>endTStamp</tt> integer fields are mandatory and indicate the
+time range over which the scan should search for events: <tt>beginTStamp</tt>
+is inclusive and <tt>endTStamp</tt> is exclusive. <tt>beginTStamp</tt>
+must be less than <tt>endTStamp</tt>. The <tt>map</tt> string field
+names the map to be scanned. There is also a <tt>ranges</tt> field
+with an array of range objects. Each range object contains integer
+<tt>start</tt> and <tt>length</tt> fields describing the virtual
+addresses of interest.
+
+<p>By default the query searches for all events in the given time range
+that affect memory in any of the given ranges. By specifying an
+optional <tt>termination</tt> field the query can be terminated early.
+The string value <tt>findFirst</tt> will allow termination as soon as
+the first-in-time relevant event has been detected. The string value
+<tt>findLast</tt> allows termination as soon as the last-in-time
+relevant event has been detected. <tt>findFirstCover</tt>
+delays termination until we have reported, for each byte in the range,
+the first-in-time event covering that byte. <tt>findLastCover</tt>
+delays until we have reported the last-in-time event covering each
+bytes. Note that the query agent may return additional events to those
+requested before the query terminates.
+
+<p>A scan query produces one result object per relevant event. Each
+result object contains a <tt>TStamp</tt> integer field with the
+event's timestamp. There is are integer <tt>start</tt> and <tt>length</tt>
+fields describing the event's affected virtual address range. The
+<tt>type</tt> string field is <tt>normal</tt> for a regular access
+and <tt>mmap</tt> for a memory-map change that affected the memory.
+For <tt>normal</tt> events, MEM_WRITE maps provide a <tt>bytes</tt>
+field, a string of 2*<tt>length</tt> hex digits. For <tt>mmap</tt>
+events, the <tt>filename</tt> string field contains the filename, if
+known, the <tt>offset</tt> integer field contains an offset within
+the file, if known, the boolean field <tt>mapped</tt> is set if
+the region now corresponds to addressable memory, and the
+<tt>read</tt>, <tt>write</tt> and <tt>execute</tt> boolean fields
+contain the read, write and execute permissions. MEM_MAP maps provide
+only <tt>mmap</tt> events.
+
+<p>The scan results for any given memory location are ordered in
+increasing-time order, except for <tt>findLast</tt> results which
+are returned in decreasing-time order. Scan results for non-intersecting
+memory areas may be reported in any order.
+
+<p>Every effort is made to catch events but some events may be missing.
+For example, some memory reads by the kernel may not be detected.
+
+<h2>Debug Information</h2>
+
+<h3>Identifiers</h3>
+
+Functions, variables and types can have identifiers. The following fields can appear:
+<ul>
+<li><tt>name</tt>: the name of the object as it appears in a source file.
+<li><tt>containerPrefix</tt>: a prefix identifying a type containing the
+object.
+<li><tt>namespacePrefix</tt>: a prefix identifying a namespace containing
+the type or object.
+</ul>
+Concatenating namespacePrefix, containerPrefix and name, or just
+containerPrefix and name, will always give something meaningful. For example,
+the C++ method std::string::length() will have name "length",
+containerPrefix "string::", and namespacePrefix "std::".
+
+Identifiers can also have a <tt>synthetic</tt> boolean field; if present
+and true, it indicates that the function or variable was not declared in
+any source file but was generated by the compiler.
+
+<h3>Compilation Units</h3>
+
+Functions and variables can expose information about their compilation unit.
+The following fields can appear:
+<ul>
+<li><tt>compilationUnit</tt>: a string identifying the compilation unit,
+usually the full or relative source path of the primary source file for
+the compilation unit.
+<li><tt>compilationUnitDir</tt>: a string identifying the path to
+which <tt>compilationUnit</tt> is relative.
+<li><tt>language</tt>: a string identifying the source language, one of
+  <ul>
+  <li><tt>Ada83</tt>
+  <li><tt>Ada95</tt>
+  <li><tt>C</tt>
+  <li><tt>C89</tt>
+  <li><tt>C99</tt>
+  <li><tt>C++</tt>
+  <li><tt>Cobol74</tt>
+  <li><tt>Cobol85</tt>
+  <li><tt>D</tt>
+  <li><tt>Fortran77</tt>
+  <li><tt>Fortran90</tt>
+  <li><tt>Fortran95</tt>
+  <li><tt>Java</tt>
+  <li><tt>Modula2</tt>
+  <li><tt>ObjC</tt>
+  <li><tt>ObjC++</tt>
+  <li><tt>Pascal83</tt>
+  <li><tt>PLI</tt>
+  <li><tt>UPC</tt>
+  </ul>
+</ul>
+
+<h3>Autocomplete</h3>
+
+<p>The command <tt>autocomplete</tt> obtains a list of global
+symbols matching a given prefix. The <tt>prefix</tt> field contains
+the desired prefix. If the optional <tt>caseSenstitive</tt> field is 'true',
+then the match is case-sensitive, otherwise it is case-insensitive
+(using ASCII case-conversion only; non-ASCII characters are not
+considered to have case). The optional <tt>desiredCount</tt> field
+specifies a maximum number of results to return. The optional
+<tt>from</tt> field gives a number of results that should be ignored
+before starting to ignore results. In conjunction with <tt>desiredCount</tt>
+this allows the list to be incrementally retrieved, which is important
+because large projects may have millions of symbols starting with
+a given character. The optional <tt>kinds</tt> field specifies an array
+of strings, a subset of "variable", "function" and "type"; if present, matches
+are limited to the given kinds of symbols.
+
+<p>Each result value specifies a possible completion. Each value contains
+a <tt>name</tt> field giving the full (case-preserved) human-readable name of
+the symbol (as stored in DWARF2 <tt>.debug.pubnames</tt> or
+<tt>.debug.pubtypes</tt>). There is also a <tt>kind</tt> field containing
+one of the strings "variable", "function" or "type". A result value may also
+contain a <tt>totalMatches</tt> integer field which gives an
+<em>estimate</em> of the total number of matches for the given prefix and
+kinds (independent of how many results have been returned or the values of
+<tt>desiredCount</tt> and <tt>from</tt>).
+
+<h3>Variables</h3>
+
+<p>Some queries return <em>variable objects</em>. These objects describe
+variables, including local variables, parameters, and global variables.
+A variable object does not contain type or value information, but it provides
+keys that allow types and values to be retrieved with via queries.
+
+<p>Variable objects can have identifier fields.
+(The name may be missing since variables can be anonymous.) There
+can be a string <tt>typeKey</tt> field identifying the type of the variable.
+There will be a string <tt>valKey</tt> field that enables one to retrieve the
+value of the variable (in conjunction with a timestamp).
+Global variable objects have compilation unit fields.
+
+<p>The command <tt>getParameters</tt> takes an integer <tt>TStamp</tt>.
+Each result is a variable object representing a formal parameter of
+the function executing at that time. The results are returned in the
+order in which the parameters are declared (perhaps implicitly, such
+as the the 'this' parameter in C++).
+
+<p>The command <tt>getLocals</tt> takes an integer <tt>TStamp</tt>
+and returns result variable objects, one for each local variable of
+the currently executing function that is in scope at time
+TStamp.
+
+<p>The command <tt>getLocation</tt> takes an integer <tt>TStamp</tt>,
+a string <tt>valKey</tt> and a string <tt>typeKey</tt>. It returns
+a number of results, each describing a "piece" of the value. It may
+return no results if the variable is out of scope at time TStamp.
+
+<p>Note that if the function invocation for a local variable or
+parameter is not running at time TStamp (i.e., not at the bottom of
+the stack) then the variable or parameter is out of scope. To
+retrieve values from caller functions, choose a TStamp where the
+caller function was active.
+
+<p>Each result object contains a string <tt>type</tt> field: one of "memory",
+"register", "constant", "undefined", or "error". Each result object can contain
+integer fields <tt>valueBitStart</tt> and <tt>bitLength</tt> denoting
+which bit-field of the value is being described. (If valueBitStart is
+not present, then type is one of "memory" or "register", and the result
+does not contribute directly to the value, but the value does depend
+on the specified memory or register.) If bitLength is zero then
+this is used as "the rest" of the data. "memory" results
+contain integer <tt>address</tt> and <tt>addressBitOffset</tt> fields
+describing the virtual address contribution to the value. "register"
+results contain string <tt>register</tt> field and an integer
+<tt>registerBitOffset</tt> field describing the register contribution to
+the value; registerBitOffset is the bit offset from the least-significant
+end. "constant" results contain a string <tt>data</tt> field
+containing the actual data, in hex.
+
+<p>"undefined" results indicate that all or part of the value is not
+available in the program state, usually because it has been
+optimized away. "error" results indicate that evaluating location
+of this part of the value was impossible in the given program
+state (for example, it required deferencing of a null pointer).
+
+<p>One of the result ojects may also contain an array of range objects
+in field <tt>validForInstructions</tt>. If present, then the value
+locations are valid during the lifetime of this function invocation
+as long as none of the mentioned registers or memory change, and the
+program counter remains inside the union of the ranges. If not
+present then the value locations are valid during the lifetime of
+the function invocation as long as none of the mentioned registers
+or memory change. With this information it is possible to efficiently
+search through time for changes to local variables or parameters.
+
+<h3>Functions</h3>
+
+<p>Some queries return <em>function objects</em>. A function object
+contains <tt>beginTStamp</tt> and <tt>endTStamp</tt> fields identifying the
+lifetime of the function (i.e. when its executable file was loaded/unloaded),
+and an <tt>entryPoint</tt> integer field giving the
+virtual address of the entry point to the function. There can also be a string
+<tt>typeKey</tt> giving the type of the function. There can also be
+a <tt>ranges</tt> object array field giving a list of virtual memory regions
+(in the standard start/length format) occupied by the function's code.
+Function objects can contain identifier fields (there may be no name, since
+functions can be anonymous). There can be compilation unit fields.
+There can be a <tt>prologueEnd</tt> integer field containing an address
+where the function prologue has ended and parameter values are readable.
+
+<p>The command <tt>lookupGlobalFunctions</tt> returns the global functions
+with a given name. The <tt>name</tt> string field contains the desired name,
+fully qualified with namespace and container as necessary,
+which is matched case-sensitively against all global symbols. Each global
+function is returned as a function object in a distinct query result.
+
+<p>The command <tt>findContainingFunction</tt> returns a global
+function containing a given address at a particular time. The
+<tt>address</tt> integer field contains the address of interest, and the
+<tt>TStamp</tt> integer field contains the timestamp. At most one
+result object will be returned; it is a function object in the same
+format as for <tt>lookupGlobalFunctions</tt>. In some cases we
+do not know exactly the memory regions occupied by a function, so we
+may have to guess; when the provided address is not in any function,
+we may incorrectly return a function anyway.
+
+<h3>Types</h3>
+
+<p>Types are treated as trees. Because types can be recursive and it's also
+useful to lazily load type information, the debugger deals with typeKeys,
+which are string identifiers for types. These are not unique; the same
+underlying type may have many different typeKeys.
+
+<p>Type information objects can have identifier fields, although many
+types are anonymous. Type objects have a <tt>kind</tt> field with one
+of the following values:
+<ul>
+<li>"annotation": the type is a const, volatile or restrict modifier of some other type
+<li>"pointer": a type of pointers to some other type
+<li>"int": an integral base type
+<li>"float": a floating point base type
+<li>"enum": a user-defined enumerated value
+<li>"typedef": an alias for another type
+<li>"struct": a record containing fields (subsumes classes and unions)
+<li>"array": an array of some other type
+<li>"function": a function type
+</ul>
+
+<p>"annotation", "pointer", "typedef", and "array" types have a string
+<tt>innerTypeKey</tt> field containing the typekey for the type they
+refer to.
+
+<p>"annotation" types have a string <tt>annotation</tt> field indicating how they modify
+the underlying type. The value can be "const", "volatile" or "restrict".
+
+<p>"pointer" types may have a boolean <tt>isReference</tt> field; if true, then this
+pointer type is syntactically a C++-style reference.
+
+<p>"int", "float", "enum" and "struct" types have
+an integer <tt>byteSize</tt> field containing the size of an instance
+of the type, in bytes, if it were in memory, padding included. Bit-sized types are not
+supported except for bit-sized struct fields, which are described under
+structs.
+
+<p>"int" types have a boolean <tt>signed</tt> field; if true the type is signed, otherwise
+it is unsigned.
+
+<p>"enum" types have a field <tt>values</tt>; this field contains an array of objects.
+Each object has an integer <tt>value</tt> field and a string <tt>name</tt> field.
+
+<p>"array" types can have an integer field <tt>length</tt>, giving the number of elements in the
+array. If not present, the length is not known. If present, the size is "length" times the
+size of the size of the element type.
+
+<p>"function" types can have a field <tt>resultTypeKey</tt> containing the result type key.
+There can also be an array field <tt>parameters</tt> containing an array of parameter objects.
+Each parameter object can have a <tt>typeKey</tt> string field and/or identifier fields.
+
+<p>"enum" and "struct" types can have a boolean field <tt>partial</tt>; if true, the values
+or fields of the type are not known in this compilation unit. The debugger may have to call
+lookupGlobalType to get the fields.
+
+<p>"struct" types have a field <tt>structKind</tt> with string values "struct",
+"class" or "union" to indicate how the type was declared. There is also a field
+<tt>fields</tt> containing an array of field objects. Each field object can have a <tt>name</tt>
+string field (not always present because fields can be anonymous). There can be a
+<tt>synthetic</tt> boolean field set to true if the field does not correspond to a
+declaration in the source program. A field object
+always has a <tt>byteOffset</tt> integer field giving the offset of the field from
+the start of the struct. For bit-fields there will be a <tt>byteSize</tt> integer field,
+a <tt>bitOffset</tt> integer field, and a <tt>bitSize</tt> integer field. "byteOffset" and
+"byteSize" specify a native integer field, and "bitOffset" and "bitSize" specify a bit range
+within that field. Each field object has a <tt>typeKey</tt> field giving its type. A
+field object can have an <tt>isSubobject</tt> boolean field; if true, then the field represents
+a subobject inherited from a parent type.
+
+<p>A type information object can have a <tt>dynamic</tt> boolean field; if true, then
+extra information (e.g., extra fields representing C++ virtual base class subobjects,'
+or an array length) may be available if the type is inspected in conjunction with
+runtime data by "lookupTypeDynamic".
+
+<p>With C++ templates, type information objects represent fully instantiated template instances.
+The type's "name" field will contain the complete name including an encoding of the template
+parameters.
+
+<p>The command <tt>lookupGlobalType</tt> finds a complete (non-partial) global type
+with a given name. The <tt>name</tt> string field contains the desired name,
+including template parameters.
+String <tt>containerPrefix</tt> and <tt>namespacePrefix</tt> fields can be
+provided. The name and prefixes are matched case-sensitively against global type names.
+Note that the same name could map to different types with different structure --- or
+no type at all. There can be a <tt>typeKey</tt> string field; if present, we look for a
+type with the requested name in the same context as the typeKey: first in the
+same compilation unit, and then in the same object file. If there is no matching type,
+then we just return no result object. The result object, if any, contains a <tt>typeKey</tt>
+field giving the unambiguous typekey of a type.
+
+<p>The command <tt>lookupType</tt> takes a string <tt>typeKey</tt> field
+parameter and returns series of result types object with the information about
+that type and related types. Information about the requested type is always
+returned if available, and the query agent sends back information about
+types that it thinks the debugger will also need, as an optimization to
+reduce the number of roundtrips required. Each result type object contains
+a <tt>typeKey</tt> field indicating which type the information is for.
+
+<p>The command <tt>lookupMethods</tt> takes a string <tt>typeKey</tt> field
+parameter and returns a series of (possibly zero) function objects. These
+are functions that are considered to be methods of the type. Each function object
+can have an extra boolean field <tt>static</tt>; if true, then the function
+is considered a static member.
+
+<p>The command <tt>lookupTypeDynamic</tt> takes a string <tt>typeKey</tt> field,
+an integer <tt>TStamp</tt> field, and either a string <tt>valKey</tt> field
+and an integer <tt>bitOffset</tt> field, or an integer <tt>address</tt> field.
+It computes type information in conjunction with runtime data. When "lookupType"
+returns a type with "dynamic" set to true, then this command can return additional
+data.
+
+<p><em>The query agent should try to collapse multiple types which are structurally
+identical into a single type. This is very important for efficiency when
+debug info may contain one type definition for every input object file.</em>
+
+<h3>Miscellaneous</h3>
+
+<p>The command <tt>findSPGreaterThan</tt> takes integer <tt>beginTStamp</tt>
+and <tt>endTStamp</tt> fields. It also takes an integer <tt>threshold</tt>
+parameter, and a <tt>thread</tt> integer field. It finds the first timestamp
+between <tt>beginTStamp</tt> (inclusive) and <tt>endTStamp</tt> (exclusive)
+of an instruction <em>after</em> which the SP was gerater than the given
+threshold and the current thread was <tt>thread</tt>. If no such instruction
+exists then no result is returned. The result object contains one integer
+field <tt>TStamp</tt>.
+
+</body>
+</html>

@@ -1,0 +1,33 @@
+#!/usr/bin/perl -w
+
+require 'tests/common.pl';
+
+my @v;
+
+sub find_function_calls {
+  my ($f) = @_;
+  
+  @v = &do_query( { cmd => 'lookupGlobalFunctions', name => $f } );
+  die unless scalar(@v) == 2;
+  die unless $v[0]->{name} eq $f;
+  die unless $v[0]->{entryPoint};
+  die unless $v[0]->{prologueEnd};
+  die unless $v[0]->{beginTStamp};
+  die unless $v[0]->{endTStamp};
+  my $prologueEnd = $v[0]->{prologueEnd};
+  my $begin = $v[0]->{beginTStamp};
+  my $end = $v[0]->{endTStamp};
+  die unless $begin <= $end;
+
+  @v = &do_query( { cmd => 'scan', beginTStamp => $begin,
+                    endTStamp => $end, map => "INSTR_EXEC",
+                    ranges => [ {start => $prologueEnd, length => 1 } ] } );
+  return grep { $_->{type} && $_->{type} eq "normal"; } @v;
+}
+
+# There should be one call to 'is_parent'
+my @calls = find_function_calls('is_parent');
+die unless scalar(@calls) == 1;
+# There should be no calls to 'is_child' (child is not traced)
+@calls = find_function_calls('is_child');
+die unless scalar(@calls) == 0;

@@ -1,0 +1,46 @@
+#!/usr/bin/perl -w
+
+require 'tests/common.pl';
+
+my @v;
+
+# test 'info' command
+@v = &do_query( { cmd => 'info' } );
+die unless scalar(@v) == 2;
+die unless $v[0]->{arch};
+die unless $v[0]->{endian};
+die unless $v[0]->{endTStamp} > 1;
+die unless grep(/^INSTR_EXEC$/, @{$v[0]->{maps}});
+die unless grep(/^MEM_WRITE$/, @{$v[0]->{maps}});
+die unless grep(/^ENTER_SP$/, @{$v[0]->{maps}});
+die unless grep(/^MEM_MAP$/, @{$v[0]->{maps}});
+my $endTStamp = $v[0]->{endTStamp};
+
+# find address of 'print' function
+@v = &do_query( { cmd => 'lookupGlobalFunctions', name => 'print' } );
+die unless scalar(@v) == 2;
+die unless $v[0]->{name} eq "print";
+die unless $v[0]->{language} eq "C89";
+die unless $v[0]->{compilationUnit} eq "tests/basic-function-calls.c";
+die unless $v[0]->{entryPoint};
+die unless $v[0]->{prologueEnd};
+die unless $v[0]->{beginTStamp};
+die unless $v[0]->{endTStamp};
+my $prologueEnd = $v[0]->{prologueEnd};
+my $printBegin = $v[0]->{beginTStamp};
+my $printEnd = $v[0]->{endTStamp};
+die unless $printEnd <= $endTStamp;
+
+# scan for all executions of 'print'
+@v = &do_query( { cmd => 'scan', beginTStamp => $printBegin,
+                  endTStamp => $printEnd, map => "INSTR_EXEC",
+                  ranges => [ {start => $prologueEnd, length => 1 } ] } );
+my @calls = grep { $_->{type} && $_->{type} eq "normal"; } @v;
+die unless scalar(@calls) == 5;
+my @mmap = grep { $_->{type} && $_->{type} eq "mmap"; } @v;
+die unless scalar(@mmap) == 1;
+die unless $mmap[0]->{filename} =~ m!/tests/basic-function-calls.bin!;
+die unless $mmap[0]->{mapped};
+die unless $mmap[0]->{read};
+die unless !$mmap[0]->{write};
+die unless $mmap[0]->{execute};

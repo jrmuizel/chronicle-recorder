@@ -1,0 +1,8 @@
+#summary News
+#labels Featured
+
+= News =
+
+== 22/5/07: Subversion repository created ==
+
+I have checked the sources into Subversion (see the Source tab). This is basically the same as the initial tarball, but I have added a couple of small fixes (one to clean up spurious error messages when a process is forked, one to allow Chronicle to build on systems where gelf.h is in /usr/include instead of /usr/include/libelf).

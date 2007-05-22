@@ -42,7 +42,7 @@ TESTS_OK = $(TESTS:.check=.ok)
 
 CFLAGS += -O2 -g -Wall
 CFLAGS += -D_GNU_SOURCE
-CFLAGS += -Ivalgrind/chronicle -Ibase -Iindexer -Iquery
+CFLAGS += -Ivalgrind/chronicle -Ibase -Iindexer -Iquery -I/usr/include/libelf
 
 LDFLAGS += -lz -lpthread -lelf
 

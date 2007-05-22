@@ -27,7 +27,7 @@
 #include "debug_internals.h"
 #include "debug_dwarf2_constants.h"
 
-#include <libelf/gelf.h>
+#include <gelf.h>
 #include <string.h>
 #include <unistd.h>
 

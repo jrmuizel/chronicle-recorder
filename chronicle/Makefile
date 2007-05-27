@@ -57,7 +57,7 @@ chronicle-query: $(BASE_OBJS) $(QUERY_OBJS)
 	$(CC) $(LDFLAGS) -o chronicle-query $(BASE_OBJS) $(QUERY_OBJS)
 
 valgrind/chronicle/chronicle-x86-linux: $(VALGRIND_DEPS)
-	(cd valgrind; automake && ./configure && make)
+	(cd valgrind; ./configure && make)
 
 clean:
 	rm -f $(BINARIES) $(BASE_OBJS) $(INDEXER_OBJS) $(QUERY_OBJS) \

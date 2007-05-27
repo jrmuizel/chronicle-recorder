@@ -2345,7 +2345,7 @@ DISTCHECK_CONFIGURE_FLAGS=--with-vex=$VEX_DIR
 
 
 # Checks for programs.
-CFLAGS="-Wno-long-long"
+CFLAGS="-Wno-long-long -fno-stack-protector"
 
 { echo "$as_me:$LINENO: checking whether ln -s works" >&5
 echo $ECHO_N "checking whether ln -s works... $ECHO_C" >&6; }

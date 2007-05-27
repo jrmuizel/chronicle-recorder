@@ -76,6 +76,7 @@ endif
 CCFLAGS = -Wall -Wmissing-prototypes -Wshadow -Winline \
 		-Wpointer-arith -Wbad-function-cast -Wcast-qual \
 		-Wcast-align -Wmissing-declarations \
+		-fno-stack-protector \
 		$(EXTRA_CFLAGS) -g -O2
 
 #CC = icc

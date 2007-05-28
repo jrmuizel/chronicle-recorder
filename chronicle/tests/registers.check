@@ -108,20 +108,23 @@ die unless defined($arch);
 my $SPreg = $arch eq 'x86' ? 'esp' : 'rsp';
 $sys_bits = $arch eq 'x86' ? 32 : 64;
 
-my @printStackPtr = &find_function_calls('passStackPtr');
+my @passStackPtr = &find_function_calls('passStackPtr');
+die unless scalar(@passStackPtr) == 1;
+
+my $ptrValue = &get_param_value('ptr', $passStackPtr[0]->{TStamp});
+
+my @passStackPtr2 = &find_function_calls('passStackPtr2');
+die unless scalar(@passStackPtr2) == 1;
+
+my $ptr2Value = &get_param_value('ptr', $passStackPtr2[0]->{TStamp});
+
+my @printStackPtr = &find_function_calls('printStackPtr');
 die unless scalar(@printStackPtr) == 1;
-
-my $ptrValue = &get_param_value('ptr', $printStackPtr[0]->{TStamp});
-
-my @printStackPtr2 = &find_function_calls('passStackPtr2');
-die unless scalar(@printStackPtr2) == 1;
-
-my $ptr2Value = &get_param_value('ptr', $printStackPtr2[0]->{TStamp});
 
 my $printStackPtrSP = &get_reg_value($SPreg, $printStackPtr[0]->{TStamp}); 
 
 printf("printStackPtrSP=%x, ptrValue=%x, ptr2Value=%x\n",
        $printStackPtrSP, $ptrValue, $ptr2Value);
 
-die unless $printStackPtrSP <= $ptrValue;
-die unless $ptr2Value <= $printStackPtrSP;
+die unless $printStackPtrSP < $ptrValue;
+die unless $ptr2Value < $printStackPtrSP;

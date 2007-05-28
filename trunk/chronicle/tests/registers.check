@@ -4,6 +4,8 @@ require 'tests/common.pl';
 
 my @v;
 
+my $sys_bits;
+
 sub find_function_calls {
   my ($f) = @_;
   
@@ -25,9 +27,101 @@ sub find_function_calls {
   return grep { $_->{type} && $_->{type} eq "normal"; } @v;
 }
 
-# There should be one call to 'is_parent'
-my @calls = find_function_calls('is_parent');
-die unless scalar(@calls) == 1;
-# There should be no calls to 'is_child' (child is not traced)
-@calls = find_function_calls('is_child');
-die unless scalar(@calls) == 0;
+sub get_reg_value {
+  my ($reg, $tstamp) = @_;
+
+  @v = &do_query( { cmd => 'readReg', TStamp => $tstamp,
+                    $reg => 128 } );
+  die unless scalar(@v) >= 1;
+  my $r = $v[0]->{$reg};
+  die unless defined($r);
+  return eval("0x".$r);
+}
+
+sub byteswap_hex {
+  my ($s) = @_;
+  my $r = "";
+  while (length($s) > 0) {
+    $r = substr($s,0,2).$r;
+    $s = substr($s,2);
+  }
+  return $r;
+}
+
+sub get_param_value {
+  my ($name, $tstamp) = @_;
+
+  @v = &do_query( { cmd => 'getParameters', TStamp => $tstamp } );
+  foreach my $v (grep { $_->{name} } @v) {
+    if ($v->{name} eq $name) {
+      my $valKey = $v->{valKey};
+      my $typeKey= $v->{typeKey};
+      die unless defined($valKey) && defined($typeKey);
+
+      @v = &do_query( { cmd => 'getLocation', TStamp => $tstamp,
+                        valKey => $valKey, typeKey => $typeKey });
+      my @locations = grep { defined($_->{valueBitStart}) } @v;
+      # Right now we'll only handle one register or memory location
+      die "Multiple locations unsupported" unless scalar(@locations) == 1;
+      my $loc = $locations[0];
+      die "Bit-offset location unsupported" unless $loc->{valueBitStart} == 0;
+      my $bitLength = $loc->{bitLength};
+      die unless defined($bitLength);
+      if ($loc->{type} eq "register") {
+        my $reg = $loc->{register};
+        die unless defined($reg);
+        my $v = &get_reg_value($reg, $tstamp);
+        die "Register bit offsets not supported" unless $loc->{registerBitOffset} == 0;
+        if ($bitLength > 0) {
+          $v = $v & ((1 << $bitLength) - 1);
+        }
+        return $v;
+      } elsif ($loc->{type} eq "memory") {
+        my $address = $loc->{address};
+        die "Address bit offsets not supported" unless $loc->{addressBitOffset} == 0;
+	my $bytes = $bitLength > 0 ? int(($bitLength + 7)/8) : $sys_bits/8;
+        @v = &do_query( { cmd => 'readMem', TStamp => $tstamp,
+                          ranges => [ { start => $address, length => $bytes } ] } );
+        my @mem = grep { $_->{bytes} } @v;
+        die "Multi-range or mmapped memory not supported" unless scalar(@mem) == 1;
+	die unless $mem[0]->{start} == $address;
+        die unless $mem[0]->{length} == $bytes;
+        my $data = &byteswap_hex($mem[0]->{bytes});
+        my $v = eval("0x".$data);
+	if ($bitLength > 0) {
+	  $v = $v & ((1 << $bitLength) - 1);
+	}
+	return $v;
+      } else {
+        die "Unknown type in location: ", join('#',%{$loc});
+      }
+    }
+  }
+  die "Variable $name not found";
+}
+
+@v = &do_query( { cmd => 'info' } );
+die unless scalar(@v) >= 1;
+my $arch = $v[0]->{arch};
+die unless defined($arch);
+
+my $SPreg = $arch eq 'x86' ? 'esp' : 'rsp';
+$sys_bits = $arch eq 'x86' ? 32 : 64;
+
+my @printStackPtr = &find_function_calls('passStackPtr');
+die unless scalar(@printStackPtr) == 1;
+
+my $ptrValue = &get_param_value('ptr', $printStackPtr[0]->{TStamp});
+
+my @printStackPtr2 = &find_function_calls('passStackPtr2');
+die unless scalar(@printStackPtr2) == 1;
+
+my $ptr2Value = &get_param_value('ptr', $printStackPtr2[0]->{TStamp});
+
+my $printStackPtrSP = &get_reg_value($SPreg, $printStackPtr[0]->{TStamp}); 
+
+printf("printStackPtrSP=%x, ptrValue=%x, ptr2Value=%x\n",
+       $printStackPtrSP, $ptrValue, $ptr2Value);
+
+die unless $printStackPtrSP <= $ptrValue;
+die unless $ptr2Value <= $printStackPtrSP;

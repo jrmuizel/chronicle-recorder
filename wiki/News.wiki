@@ -3,6 +3,10 @@
 
 = News =
 
+== 28/5/07: Fixed Ubuntu build ==
+
+I checked in a patch by Grahame Bowland that fixes the build on Ubuntu. I also removed some generated files that should not be part of the repository. I noticed that make check fails because the register test was incomplete; I've fixed the test, but it's still failing and I don't know why right now. I'll look into it later. Thanks Grahame!
+
 == 22/5/07: Subversion repository created ==
 
 I have checked the sources into Subversion (see the Source tab). This is basically the same as the initial tarball, but I have added a couple of small fixes (one to clean up spurious error messages when a process is forked, one to allow Chronicle to build on systems where gelf.h is in /usr/include instead of /usr/include/libelf).

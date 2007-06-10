@@ -3,6 +3,10 @@
 
 = News =
 
+== 10/6/07: Removed "featured" download ==
+
+I notice that people continue to download the tarball at a slow but steady rate. (I find that surprising since it doesn't do anything generally useful, but fine!) People really should pull the latest version from Subversion since it fixes the issues discussed below, so I made the tarball no longer a "featured download" to try to discourage it.
+
 == 28/5/07: Fixed Ubuntu build ==
 
 I checked in a patch by Grahame Bowland that fixes the build on Ubuntu. I also removed some generated files that should not be part of the repository. I noticed that make check fails because the register test was incomplete; I've fixed the test, but it's still failing and I don't know why right now. I'll look into it later. Thanks Grahame!

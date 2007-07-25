@@ -533,11 +533,13 @@ int dbg_lookup_global_type(QueryThread* q, JSON_Builder* builder,
   CH_StringBuf full_name;
   char* heap_name;
   GlobalSymbol* best_symbol = NULL;
-  DebugObject* context_type_object;
+  DebugObject* context_type_object = NULL;
   CH_DbgDwarf2Offset context_type_offset;
 
-  if (!crack_type_key(q, context_typekey, &context_type_object, &context_type_offset))
-    return 0;
+  if (context_typekey) {
+    if (!crack_type_key(q, context_typekey, &context_type_object, &context_type_offset))
+      return 0;
+  }
 
   dbg_wait_for_global_symbols(q);
   
@@ -578,11 +580,12 @@ int dbg_lookup_global_type(QueryThread* q, JSON_Builder* builder,
   return 1;
 }
 
+/**
+ * *file_addr is only filled in if mmap_info->map_operation is non-NULL.
+ */
 static void translate_virtual_to_file_address(CH_Address virtual_addr,
     CH_TStamp tstamp, CH_Address* file_addr, CH_MemMapInfo* mmap_info) {
   CH_MemMapHistory* history = find_memory_map_history_for(virtual_addr);
-  
-  *file_addr = 0;
   *mmap_info = get_memory_map_info_for(history, tstamp);
   if (!mmap_info->map_operation)
     return;
@@ -599,6 +602,8 @@ static int get_dwarf2_function_for(QueryThread* q, CH_TStamp tstamp,
 
   *defining_object_offset = 0;
   translate_virtual_to_file_address(virtual_addr, tstamp, file_addr, mmap_info);
+  if (!mmap_info->map_operation)
+    return 1;
   
   debug_object_index =
     debug_objects_by_address_map_event[mmap_info->map_operation - 
@@ -836,6 +841,8 @@ static int get_function_variables(QueryThread* q, JSON_Builder* builder,
   if (!get_dwarf2_function_for(q, tstamp, virtual_pc_addr, &obj,
                                &defining_object_offset, &file_pc_addr, &mmap_info))
     return 0;
+  if (!defining_object_offset)
+    return 1;
 
   /* get the locals or parameters defined in that function */
   results = dwarf2_get_variables(q, obj->dwarf_obj, defining_object_offset,
@@ -894,6 +901,8 @@ CH_DbgValuePiece* dbg_examine_value(QueryThread* q, CH_TStamp tstamp,
   
   translate_virtual_to_file_address(virtual_pc_addr, tstamp, &file_pc_addr,
                                     &mmap_info);
+  if (!mmap_info.map_operation)
+    return NULL;
   
   if (!crack_value_key(q, valkey, &value_object, &function_offset, &variable_offset))
     return NULL;
@@ -967,14 +976,16 @@ static int read_memory_callback(void* closure, QueryThread* q, CH_EffectMapReade
 int dbg_read_memory(CH_DbgProgramState* state, CH_Address addr, uint32_t len,
                     uint8_t* result, uint8_t* valid) {
   ExaminationClosure* cl = state->closure;
-  CH_Range range = { addr, len };
+  CH_Range* range = safe_malloc(sizeof(CH_Range));
   DbgReadMemoryClosure inner = { cl, result, valid, addr };
   CH_Semaphore sem;
 
+  range->start = addr;
+  range->length = len;
   memset(valid, 0, len);
   semaphore_init(&sem);
   effect_map_reader_do_scan(get_builtin_write_map(),
-                            cl->query, 0, state->tstamp, &range, 1,
+                            cl->query, 0, state->tstamp, range, 1,
                             MODE_FIND_FIRST_COVER, -1, 0, read_memory_callback,
                             &inner, &sem);
   semaphore_wait_for_all_removed(&sem);

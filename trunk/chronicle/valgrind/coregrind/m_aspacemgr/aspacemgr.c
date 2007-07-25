@@ -2861,6 +2861,7 @@ Bool VG_(am_extend_into_adjacent_reservation_client) ( NSegment* seg,
    aspacem_assert(VG_IS_PAGE_ALIGNED(delta<0 ? -delta : delta));
 
    if (delta > 0) {
+      Addr start;
 
       /* Extending the segment forwards. */
       segR = segA+1;
@@ -2871,10 +2872,11 @@ Bool VG_(am_extend_into_adjacent_reservation_client) ( NSegment* seg,
           || delta + VKI_PAGE_SIZE 
                 > (nsegments[segR].end - nsegments[segR].start + 1))
         return False;
-        
+
       /* Extend the kernel's mapping. */
+      start = nsegments[segR].start;
       sres = VG_(am_do_mmap_NO_NOTIFY)( 
-                nsegments[segR].start, delta,
+                start, delta,
                 prot,
                 VKI_MAP_FIXED|VKI_MAP_PRIVATE|VKI_MAP_ANONYMOUS, 
                 0, 0 
@@ -2892,7 +2894,7 @@ Bool VG_(am_extend_into_adjacent_reservation_client) ( NSegment* seg,
       nsegments[segA].end += delta;
       aspacem_assert(nsegments[segR].start <= nsegments[segR].end);
 
-      do_change_callback(&nsegments[segA], nsegments[segA].end - delta,
+      do_change_callback(&nsegments[segA], start - nsegments[segA].start,
                          delta, True, False);
 
    } else {

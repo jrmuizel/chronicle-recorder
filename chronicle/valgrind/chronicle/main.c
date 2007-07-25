@@ -1502,7 +1502,7 @@ static Bool is_x87Tag_IRArray(IRArray* array)
     && array->base == CH_OFFSETOF(VexGuestState, guest_FPTAG[0]);
 }
 
-static IRExpr* add_trace_x87_indirech_reg(IRBB* bb, IRExpr* ix, Int bias)
+static IRExpr* add_trace_x87_indirect_reg(IRBB* bb, IRExpr* ix, Int bias)
 {
   /* compute (uint8_t)(((ix+bias)&7) + CH_X86_FP_REGS) */
   IRTemp e1 = newIRTemp(bb->tyenv, Ity_I32);
@@ -1833,7 +1833,7 @@ static IRBB* ch_instrument(VgCallbackClosure* closure, IRBB* bb_in, VexGuestLayo
       addStmtToIRBB(bb, st);
       if (is_x87_IRArray(st->Ist.PutI.descr)) {
         IRConst* doff = add_trace_store(bb, tmp_trace_rec_ptr, 0, st->Ist.PutI.data);
-        IRExpr* indirect = add_trace_x87_indirech_reg(bb, st->Ist.PutI.ix,
+        IRExpr* indirect = add_trace_x87_indirect_reg(bb, st->Ist.PutI.ix,
                                                       st->Ist.PutI.bias);
         IRConst* roff = add_trace_store(bb, tmp_trace_rec_ptr, 0, indirect);
         CH_RegEffect effect =
@@ -1897,7 +1897,7 @@ static IRBB* ch_instrument(VgCallbackClosure* closure, IRBB* bb_in, VexGuestLayo
         case Iex_GetI:
           if (control_flags & CH_INITFLAG_LOG_REG_READS) {
             if (is_x87_IRArray(expr->Iex.GetI.descr)) {
-              IRExpr* indirect = add_trace_x87_indirech_reg(bb, expr->Iex.GetI.ix,
+              IRExpr* indirect = add_trace_x87_indirect_reg(bb, expr->Iex.GetI.ix,
                                                             expr->Iex.GetI.bias);
               IRConst* roff = add_trace_store(bb, tmp_trace_rec_ptr, 0, indirect);
               CH_RegEffect effect =

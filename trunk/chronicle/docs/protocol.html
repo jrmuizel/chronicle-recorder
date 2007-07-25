@@ -419,7 +419,7 @@ of the following values:
 
 <p>"annotation", "pointer", "typedef", and "array" types have a string
 <tt>innerTypeKey</tt> field containing the typekey for the type they
-refer to.
+refer to. Pointer types may have no innerTypeKey, meaning it's a pointer to void.
 
 <p>"annotation" types have a string <tt>annotation</tt> field indicating how they modify
 the underlying type. The value can be "const", "volatile" or "restrict".
@@ -433,8 +433,8 @@ of the type, in bytes, if it were in memory, padding included. Bit-sized types a
 supported except for bit-sized struct fields, which are described under
 structs.
 
-<p>"int" types have a boolean <tt>signed</tt> field; if true the type is signed, otherwise
-it is unsigned.
+<p>"int" types may have a boolean <tt>signed</tt> field; if true the type is
+signed, otherwise it is unsigned (default unsigned).
 
 <p>"enum" types have a field <tt>values</tt>; this field contains an array of objects.
 Each object has an integer <tt>value</tt> field and a string <tt>name</tt> field.
@@ -452,7 +452,7 @@ or fields of the type are not known in this compilation unit. The debugger may h
 lookupGlobalType to get the fields.
 
 <p>"struct" types have a field <tt>structKind</tt> with string values "struct",
-"class" or "union" to indicate how the type was declared. There is also a field
+"class" or "union" to indicate how the type was declared. There can also be a field
 <tt>fields</tt> containing an array of field objects. Each field object can have a <tt>name</tt>
 string field (not always present because fields can be anonymous). There can be a
 <tt>synthetic</tt> boolean field set to true if the field does not correspond to a
@@ -466,7 +466,7 @@ field object can have an <tt>isSubobject</tt> boolean field; if true, then the f
 a subobject inherited from a parent type.
 
 <p>A type information object can have a <tt>dynamic</tt> boolean field; if true, then
-extra information (e.g., extra fields representing C++ virtual base class subobjects,'
+extra information (e.g., extra fields representing C++ virtual base class subobjects,
 or an array length) may be available if the type is inspected in conjunction with
 runtime data by "lookupTypeDynamic".
 
@@ -482,9 +482,10 @@ provided. The name and prefixes are matched case-sensitively against global type
 Note that the same name could map to different types with different structure --- or
 no type at all. There can be a <tt>typeKey</tt> string field; if present, we look for a
 type with the requested name in the same context as the typeKey: first in the
-same compilation unit, and then in the same object file. If there is no matching type,
-then we just return no result object. The result object, if any, contains a <tt>typeKey</tt>
-field giving the unambiguous typekey of a type.
+same compilation unit, and then in the same object file, then globally.
+If there is no matching type, then we just return no result object. The result
+object, if any, contains a <tt>typeKey</tt> field giving the unambiguous typekey
+of a type.
 
 <p>The command <tt>lookupType</tt> takes a string <tt>typeKey</tt> field
 parameter and returns series of result types object with the information about
@@ -517,7 +518,7 @@ debug info may contain one type definition for every input object file.</em>
 and <tt>endTStamp</tt> fields. It also takes an integer <tt>threshold</tt>
 parameter, and a <tt>thread</tt> integer field. It finds the first timestamp
 between <tt>beginTStamp</tt> (inclusive) and <tt>endTStamp</tt> (exclusive)
-of an instruction <em>after</em> which the SP was gerater than the given
+of an instruction <em>after</em> which the SP was greater than the given
 threshold and the current thread was <tt>thread</tt>. If no such instruction
 exists then no result is returned. The result object contains one integer
 field <tt>TStamp</tt>.

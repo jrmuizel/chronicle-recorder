@@ -170,11 +170,16 @@ CH_MemMapHistory* find_memory_map_history_for(CH_Address addr) {
 
 CH_MemMapInfo get_memory_map_info_for(CH_MemMapHistory* history, CH_TStamp tstamp) {
   uint32_t start = 0;
-  uint32_t end = history->num_map_operations;
+  uint32_t end;
   CH_MemMapInfo r;
 
   r.map_operation = NULL;
   r.unmap_operation = NULL;
+  
+  if (!history)
+    return r;
+
+  end = history->num_map_operations;
   while (start + 2 <= end) {
     uint32_t mid = (start + end)/2;
     if (address_map_entries[history->map_operations[mid]].tstamp <= tstamp) {

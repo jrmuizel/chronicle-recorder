@@ -189,8 +189,13 @@ void JSON_open_array(JSON_Builder* builder, const char* field);
 void JSON_close_array(JSON_Builder* builder);
 
 /**
+ * Write the JSON data to 'output'.
+ * Any open objects or arrays are treated as closed.
+ */
+void JSON_builder_write(JSON_Builder* builder, FILE* output);
+/**
  * Write the JSON data to 'output', then clean up and destroy the builder.
- * Any open objects or arrays are automatically closed first.
+ * Any open objects or arrays are treated as closed.
  */
 void JSON_builder_done_write(JSON_Builder* builder, FILE* output);
 /**

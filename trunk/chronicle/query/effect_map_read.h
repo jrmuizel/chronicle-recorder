@@ -109,7 +109,7 @@ typedef int (* CH_EffectMapReaderScanResultCallback)(void* callback_closure,
 /**
  * Scans until the callback returns 0 or we reach the end of the search.
  * @param ranges we report accesses that intersect one of these ranges;
- * this function takes ownership of the memory
+ * this function takes ownership of the memory (which must be malloced)
  * @param callback the function that gets called when results have been obtained
  * @param direction 1 to proceed from begin_tstamp to end_tstamp, -1 to
  * proceed from end_tstamp to begin_tstamp

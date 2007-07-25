@@ -44,6 +44,7 @@
 
 static const char* db_file;
 static int do_log;
+static FILE* log_file;
 
 static uintptr_t reg_log_entry_count;
 static CH_DBRegLogEntry* reg_log_entries;
@@ -53,18 +54,28 @@ static QueryThread* active_queries[MAX_QUERIES];
 static pthread_mutex_t active_queries_mutex;
 static pthread_cond_t active_queries_condition;
 
-static pthread_mutex_t output_lock;
+static pthread_mutex_t stdout_lock;
+static pthread_mutex_t log_lock;
 
 CH_DBFileReader* get_db() {
   return &db;
 }
 
 void debugger_output(JSON_Builder* builder) {
-  pthread_mutex_lock(&output_lock);
+  if (log_file) {
+    pthread_mutex_lock(&log_lock);
+    fputc('>', log_file);
+    JSON_builder_write(builder, log_file);
+    fputc('\n', log_file);
+    fflush(log_file);
+    pthread_mutex_unlock(&log_lock);
+  }
+  
+  pthread_mutex_lock(&stdout_lock);
   JSON_builder_done_write(builder, stdout);
   fputc('\n', stdout);
   fflush(stdout);
-  pthread_mutex_unlock(&output_lock);
+  pthread_mutex_unlock(&stdout_lock);
 }
 
 static void remove_query(QueryThread* q) {
@@ -1184,8 +1195,9 @@ void* load_table(const char* section, uint32_t entry_size, uintptr_t* count) {
 int main(int argc, char** argv) {
   int db_fd;
   char buf[10240];
-  int log_fd = -1;
 
+  pthread_mutex_init(&stdout_lock, NULL);
+  pthread_mutex_init(&log_lock, NULL);
   pthread_mutex_init(&active_queries_mutex, NULL);
   pthread_cond_init(&active_queries_condition, NULL);
 
@@ -1197,10 +1209,10 @@ int main(int argc, char** argv) {
     char logfile[1024];
   
     sprintf(logfile, "/tmp/chronicle-log.%d", getpid());
-    log_fd = open(logfile, O_CREAT | O_TRUNC | O_WRONLY | O_EXCL, S_IRUSR | S_IWUSR);
-    if (log_fd < 0)
+    log_file = fopen(logfile, "w");
+    if (!log_file)
       fatal_perror(1, "Cannot open user query log file %s", logfile);
-  }  
+  }
   
   db_fd = open(db_file, O_LARGEFILE | O_RDONLY);
   if (db_fd < 0)
@@ -1213,7 +1225,7 @@ int main(int argc, char** argv) {
 
   memory_map_init();
   dbg_init();
-  reg_init();  
+  reg_init();
 
   effect_map_reader_init(&builtin_maps[0], "INSTR_EXEC", 0, 0);
   effect_map_reader_init(&builtin_maps[1], "MEM_WRITE", 1, 0);
@@ -1230,8 +1242,11 @@ int main(int argc, char** argv) {
     if (buf[sizeof(buf)-1] != 0)
       fatal_error(99, "Command too large");
 
-    if (log_fd >= 0) {
-      write(log_fd, buf, strlen(buf));
+    if (log_file) {
+      pthread_mutex_lock(&log_lock);
+      fputs(buf, log_file);
+      fflush(log_file);
+      pthread_mutex_unlock(&log_lock);
     }
     
     v = JSON_parse(buf, strlen(buf));

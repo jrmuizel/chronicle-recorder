@@ -98,6 +98,7 @@ typedef struct {
  * was not unmapped or remapped between tstamp and the end of the trace then
  * we return NULL for the unmap_operation. Note that unmap_operation could
  * be an operation that remapped to the area to something else.
+ * 'history' can be NULL, in which case we just return a NULL pair.
  */
 CH_MemMapInfo get_memory_map_info_for(CH_MemMapHistory* history, CH_TStamp tstamp);
 

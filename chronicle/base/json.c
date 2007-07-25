@@ -562,8 +562,10 @@ static int builder_print(JSON_Builder* builder, FILE* output, int i) {
     ++i;
     fputc('{', output);
     for (;;) {
-      if (i >= builder->buf_count)
-        fatal_error(81, "Incomplete object");
+      if (i >= builder->buf_count) {
+        fputc('}', output);
+        return i;
+      }
       v = &((JSON_Value*)builder->buf.data)[i];
       if (v->type == JSON_INVALID) {
         fputc('}', output);
@@ -585,8 +587,10 @@ static int builder_print(JSON_Builder* builder, FILE* output, int i) {
     ++i;
     fputc('[', output);
     for (;;) {
-      if (i >= builder->buf_count)
-        fatal_error(81, "Incomplete object");
+      if (i >= builder->buf_count) {
+        fputc(']', output);
+        return i;
+      }
       v = &((JSON_Value*)builder->buf.data)[i];
       if (v->type == JSON_INVALID) {
         fputc(']', output);
@@ -605,24 +609,25 @@ static int builder_print(JSON_Builder* builder, FILE* output, int i) {
 }
 
 void JSON_builder_done_write(JSON_Builder* builder, FILE* output) {
-  int i;
-  
+  JSON_builder_write(builder, output);
+  JSON_builder_done(builder);
+}
+
+void JSON_builder_write(JSON_Builder* builder, FILE* output) {
   if (output) {
-    if (((JSON_Value*)builder->buf.data)[0].type == JSON_OBJECT) {
-      JSON_close_object(builder);
-    }
     if (builder_print(builder, output, 0) != builder->buf_count)
       fatal_error(81, "More than one value in the builder");
   }
+}
+
+void JSON_builder_done(JSON_Builder* builder) {
+  int i;
+  
   safe_free(builder->buf.data);
   for (i = 0; i < builder->block_buf_count; ++i) {
     safe_free(((void**)builder->block_buf.data)[i]);
   }
   safe_free(builder->block_buf.data);
-}
-
-void JSON_builder_done(JSON_Builder* builder) {
-  JSON_builder_done_write(builder, NULL);
 }
 
 void JSON_write(FILE* output, JSON_Value* v) {
@@ -651,10 +656,10 @@ void JSON_write(FILE* output, JSON_Value* v) {
     fputc('"', output);
     break;
   case JSON_INT:
-    fprintf(stdout, "%lld", (long long)v->v.i);
+    fprintf(output, "%lld", (long long)v->v.i);
     break;
   case JSON_DOUBLE:
-    fprintf(stdout, "%.99g", v->v.d);
+    fprintf(output, "%.99g", v->v.d);
     break;
   case JSON_ARRAY:
     fputc('[', output);

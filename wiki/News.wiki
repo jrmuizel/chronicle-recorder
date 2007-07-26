@@ -5,7 +5,7 @@
 
 == 27/7/07: Bug fixes, contributions ==
 
-Andrew Sutherland has announced some tools he's building on Chronicle! See [[http://www.visophyte.org/blog/2007/07/26/chroniquery-chronicle-recorder-and-python-boogie-down/]]. He has some Chronicle patches that I hope to integrate shortly.
+Andrew Sutherland has announced some tools he's building on Chronicle! See [http://www.visophyte.org/blog/2007/07/26/chroniquery-chronicle-recorder-and-python-boogie-down/]. He has some Chronicle patches that I hope to integrate shortly.
 
 Also I've recently checked in some small fixes of my own. I fixed some small bugs, and the query engine's chronicle-log.NNN logs now include query output as well as query input.
 

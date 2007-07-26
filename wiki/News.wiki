@@ -3,6 +3,12 @@
 
 = News =
 
+== 27/7/07: Bug fixes, contributions ==
+
+Andrew Sutherland has announced some tools he's building on Chronicle! See [[http://www.visophyte.org/blog/2007/07/26/chroniquery-chronicle-recorder-and-python-boogie-down/]]. He has some Chronicle patches that I hope to integrate shortly.
+
+Also I've recently checked in some small fixes of my own. I fixed some small bugs, and the query engine's chronicle-log.NNN logs now include query output as well as query input.
+
 == 10/6/07: Removed "featured" download ==
 
 I notice that people continue to download the tarball at a slow but steady rate. (I find that surprising since it doesn't do anything generally useful, but fine!) People really should pull the latest version from Subversion since it fixes the issues discussed below, so I made the tarball no longer a "featured download" to try to discourage it.

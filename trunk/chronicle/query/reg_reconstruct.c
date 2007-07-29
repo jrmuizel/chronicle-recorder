@@ -462,6 +462,8 @@ static void reconstruct_registers(QueryThread* q, CH_DBRegLogEntry* e,
     uint32_t code_index = code_indexes[i];
     CH_DBCodeInfoEntry* code_info = &code_info_entries[code_index];
     uint8_t retired = instructions_retired[i];
+    uint32_t instructions_to_consider =
+      retired > instruction_index ? instruction_index : retired;
     CH_BunchedEffect* effects = (CH_BunchedEffect*)
       (effect_set_data[code_info->effect_set] + code_info->offset_in_effect_set);
     CH_RegEffect* reg_effects = (CH_RegEffect*)
@@ -502,7 +504,8 @@ static void reconstruct_registers(QueryThread* q, CH_DBRegLogEntry* e,
     init_reg_log_buffer(log_entry_buf.data + exec_entry->last_log_offset,
                         &reg_log_buf);
     for (j = 0; j < code_info->num_reg_effects; ++j) {
-      if (reg_effects[j].instruction_index < instruction_index) {
+      uint8_t reg_instruction_index = reg_effects[j].instruction_index;
+      if (reg_instruction_index < instructions_to_consider) {
         if (!apply_reg_effect(q, &reg_effects[j], &registers, &reg_log_buf)) {
           safe_free(log_entry_buf.data);
           safe_free(code_exec_table);
@@ -510,7 +513,7 @@ static void reconstruct_registers(QueryThread* q, CH_DBRegLogEntry* e,
         }
         if (write_check_callback) {
           if (!check_reg_effect(&reg_effects[j], &registers, reg_log_buf.saved_dynreg,
-                                instruction_count + reg_effects[j].instruction_index,
+                                instruction_count + reg_instruction_index,
                                 write_check_mask, write_check_callback,
                                 write_check_callback_closure)) {
             safe_free(log_entry_buf.data);

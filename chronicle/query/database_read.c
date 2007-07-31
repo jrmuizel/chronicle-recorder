@@ -39,10 +39,10 @@ void db_init_reader(CH_DBFileReader* db, int fd) {
     fatal_error(33, "Database is not the current version");
   
   db->name_buf = db_read_alloc(db, db->header.name_offset,
-			       db->header.name_size);
+                               db->header.name_size);
   db->directory_buf =
     db_read_alloc(db, db->header.directory_offset,
-		  db->header.directory_count*sizeof(CH_DBDirEntry));
+                  db->header.directory_count*sizeof(CH_DBDirEntry));
 }
 
 CH_DBDirEntry* db_directory_lookup(CH_DBFileReader* db, const char* name) {
@@ -60,7 +60,7 @@ void db_read(CH_DBFileReader* db, uint64_t offset, void* buf, uint32_t len) {
     ssize_t r = pread64(db->fd, buf, len, offset);
     if (r <= 0)
       fatal_perror(21, "Cannot read database file at %lx length %d\n",
-		   offset, len);
+                   offset, len);
 
     offset += r;
     buf = (uint8_t*)buf + r;

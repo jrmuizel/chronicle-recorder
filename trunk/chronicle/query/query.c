@@ -322,7 +322,7 @@ static void parse_options(int argc, char** argv) {
 
   if (!db_file)
     fatal_error(2, "No database file specified in CHRONICLE_DB environment "
-		"variable or in --db parameter");
+                "variable or in --db parameter");
 }
 
 static void cancel_command(int64_t id) {
@@ -349,7 +349,7 @@ static void info_command(QueryThread* q, JSON_Value* v) {
     JSON_append_string(&builder, "arch", archs[db.header.architecture]);
   }
   JSON_append_string(&builder, "endian",
-		     db.header.is_little_endian ? "little" : "big");
+                     db.header.is_little_endian ? "little" : "big");
   JSON_append_int(&builder, "endTStamp", db.header.end_tstamp);
   JSON_open_array(&builder, "maps");
   JSON_append_string(&builder, NULL, "INSTR_EXEC");
@@ -384,10 +384,10 @@ static QueryThread* create_query(int64_t id) {
   while (retry) {
     for (i = 0; i < MAX_QUERIES; ++i) {
       if (!active_queries[i]) {
-        	q->index = i;
-        	active_queries[i] = q;
-        	retry = 0;
-        	break;
+                q->index = i;
+                active_queries[i] = q;
+                retry = 0;
+                break;
       }
     }
     if (retry) {

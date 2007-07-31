@@ -940,6 +940,33 @@ static void scan_command(QueryThread* q, JSON_Value* v) {
                        mode, direction, 0, scan_callback, NULL, NULL);
 }
 
+static void find_source_info_command(QueryThread* q, JSON_Value* v) {
+  JSON_Value* tstamp = check_field_of_type(q, v, "command", "TStamp", JSON_INT);
+  JSON_Value* address = check_field_of_type(q, v, "command", "address", JSON_INT);
+  JSON_Builder builder;
+  CH_DbgSourceInfo result;
+
+  if (!tstamp || !address)
+    return;
+
+  result = dbg_get_source_info(q, tstamp->v.i, address->v.i);
+
+  add_work(q, 1);
+  
+  JSON_builder_init_object(&builder);
+  if (result.filename) {
+    JSON_append_string(&builder, "filename", result.filename);
+    JSON_append_int(&builder, "startLine",   result.start_line);
+    JSON_append_int(&builder, "startColumn", result.start_column);
+    if (result.end_line && result.end_column) {
+      JSON_append_int(&builder, "endLine",   result.end_line);
+      JSON_append_int(&builder, "endColumn", result.end_column);
+    }
+  }
+
+  complete_work(q, 1, &builder);
+}
+
 static void find_containing_function_command(QueryThread* q, JSON_Value* v) {
   JSON_Value* tstamp = check_field_of_type(q, v, "command", "TStamp", JSON_INT);
   JSON_Value* address = check_field_of_type(q, v, "command", "address", JSON_INT);
@@ -1132,6 +1159,7 @@ typedef struct {
 static Command commands[] = {
   {"autocomplete", autocomplete_command},
   {"findContainingFunction", find_containing_function_command},
+  {"findSourceInfo", find_source_info_command},
   {"findSPGreaterThan", find_SP_greater_than_command},
   {"getLocals", get_locals_command},
   {"getLocation", get_location_command},

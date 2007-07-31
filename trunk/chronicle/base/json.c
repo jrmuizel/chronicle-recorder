@@ -92,7 +92,8 @@ static int parse_string(Parser* p, JSON_Value* r) {
       if (p->end - p->data < 2)        
         return parse_error("Unexpected end of input reading string");
       
-      ch = p->data[1];
+      p->data++;
+      ch = *p->data;
       if (ch == 'u') {
         /* TODO convert the Unicode character to UTF8 */
         fatal_error(99, "Unicode characters not supported yet");

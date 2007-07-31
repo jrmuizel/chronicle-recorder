@@ -65,6 +65,32 @@ void dwarf2_load_global_symbols(CH_DbgDwarf2Object* obj,
 void dwarf2_close(CH_DbgDwarf2Object* obj);
 
 /**
+ * Data about an instruction's line/column information.
+ */
+typedef struct {
+  const char* file_name; /* immortal, caller does not free */
+  uint32_t    line_number;
+  uint32_t    column_number;
+} CH_DbgDwarf2LineNumberEntry;
+
+/**
+ * Retrieve the source line/column info for the closest address (source line
+ * addr <= given addr), storing the result into the caller-supplied 'line'.
+ * If no line information is available, the 'line' structure will be zeroed.
+ *
+ * If 'next_line' is non-NULL, information on the next source line will be
+ * provided, if available, otherwise 'next_line' will be zeroed.
+ *
+ * Returns false on failure; the state of line and next_line is undefined in
+ * such a case.
+ */
+int dwarf2_get_source_info(QueryThread* q, CH_DbgDwarf2Object* obj,
+                           CH_DbgDwarf2Offset defining_object_offset,
+                           CH_Address file_offset,
+                           CH_DbgDwarf2LineNumberEntry* line,
+                           CH_DbgDwarf2LineNumberEntry* next_line);
+
+/**
  * Strings describing the compilation unit.
  */
 typedef struct {
@@ -207,11 +233,11 @@ typedef struct {
   const char*                     name;
   char*                           container_prefix; /* malloced, caller must free */
   char*                           namespace_prefix; /* malloced, caller must free */
-  int64_t                         bytes_size; // -1 if not known
+  int64_t                         bytes_size; /* -1 if not known */
   
   CH_DbgDwarf2CompilationUnitInfo cu;
 
-  intptr_t                        array_length; // -1 if not known
+  intptr_t                        array_length; /* -1 if not known */
   CH_DbgStructKind                struct_kind;
   CH_DbgAnnotationKind            annotation_kind;
   uint8_t                         pointer_is_reference;

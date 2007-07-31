@@ -512,6 +512,17 @@ data.
 identical into a single type. This is very important for efficiency when
 debug info may contain one type definition for every input object file.</em>
 
+<h3>Source Line Info</h3>
+
+<p>The command <tt>findSourceInfo</tt> finds the source coordinates (if any)
+corresponding to <tt>address</tt> at time <tt>TStamp</tt>. If source
+information can be found, the result packet will contain a <tt>filename</tt>
+string field accompanied by 1-based integer <tt>startLine</tt> and
+<tt>startColumn</tt> fields. The file name contains all available directory
+information, although it may not be a complete path. Additionally, we may
+provide a guess at the end of the source element, in the form of 1-based
+<tt>endLine</tt> and <tt>endColumn</tt> fields.
+
 <h3>Miscellaneous</h3>
 
 <p>The command <tt>findSPGreaterThan</tt> takes integer <tt>beginTStamp</tt>

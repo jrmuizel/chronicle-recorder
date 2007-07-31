@@ -128,6 +128,7 @@ typedef enum _CH_Dwarf2_DW_LNS {
   DW_LNS_advance_pc = 0x02,
   DW_LNS_advance_line = 0x03,
   DW_LNS_set_file = 0x04,
+  DW_LNS_set_column = 0x05,
   DW_LNS_const_add_pc = 0x08,
   DW_LNS_fixed_advance_pc = 0x09
 } CH_Dwarf2_DW_LNS;

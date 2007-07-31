@@ -1473,9 +1473,11 @@ typedef struct {
   uint64_t    address; /* dwarf address */
   const char* file_name;
   uint32_t    line_number;
+  uint32_t    column_number;
 } LineNumberEntry;
 typedef struct {
-  /* sorted by address non-decreasing order */
+  /* sorted by address non-decreasing order, usually, but may be sorted
+   * by file_name, line_number and column_number after sort_by_source_info */
   LineNumberEntry* line_number_entries;
   uint32_t         line_number_entry_count;
 } LineNumberTable;
@@ -1545,7 +1547,7 @@ static int append_file_record(CompilationUnitReader* cu_reader,
 
 static int append_line_number_entry(CompilationUnitReader* cu_reader,
     CH_GrowBuf* line_buf, uint32_t* line_buf_count,
-    uint64_t address, uint64_t file, uint64_t line) {
+    uint64_t address, uint64_t file, uint64_t line, uint64_t column) {
   LineNumberEntry* entry;
   CH_DbgDwarf2Object* obj = cu_reader->obj;
   
@@ -1557,12 +1559,17 @@ static int append_line_number_entry(CompilationUnitReader* cu_reader,
     dwarf2_invalid_warning(obj, "Line number overflow");
     return 0;
   }
+  if ((uint32_t)column != column) {
+    dwarf2_invalid_warning(obj, "Column number overflow");
+    return 0;
+  }
   
   ensure_buffer_size(line_buf, (*line_buf_count + 1)*sizeof(LineNumberEntry));
   entry = (LineNumberEntry*)line_buf->data + *line_buf_count;
   entry->address = address;
   entry->file_name = cu_reader->abbrev_offsets->file_names[file - 1];
   entry->line_number = (uint32_t)line;
+  entry->column_number = (uint32_t)column;
   (*line_buf_count)++;
   return 1;
 }
@@ -1611,6 +1618,7 @@ static int get_line_number_table(QueryThread* q, CompilationUnitReader* cu_reade
   uint64_t reg_address = 0;
   uint64_t reg_file = 1;
   uint64_t reg_line = 1;
+  uint64_t reg_column = 1;
   int OK = 1;
   const char* compilation_unit_dir = ".";
   
@@ -1744,13 +1752,14 @@ static int get_line_number_table(QueryThread* q, CompilationUnitReader* cu_reade
             case DW_LNE_end_sequence:
               if (table) {
                 if (!append_line_number_entry(cu_reader, &line_buf, &line_buf_count,
-                        reg_address, reg_file, reg_line)) {
+                        reg_address, reg_file, reg_line, reg_column)) {
                   OK = 0;
                 }
               }
               reg_address = 0;
               reg_file = 1;
               reg_line = 1;
+              reg_column = 1;
               break;
             
             case DW_LNE_define_file:
@@ -1784,7 +1793,7 @@ static int get_line_number_table(QueryThread* q, CompilationUnitReader* cu_reade
         case DW_LNS_copy:
           if (table) {
             if (!append_line_number_entry(cu_reader, &line_buf, &line_buf_count,
-                    reg_address, reg_file, reg_line)) {
+                    reg_address, reg_file, reg_line, reg_column)) {
               OK = 0;
             }
           }
@@ -1816,6 +1825,15 @@ static int get_line_number_table(QueryThread* q, CompilationUnitReader* cu_reade
           reg_file = f;
           break;
         }
+        case DW_LNS_set_column: {
+          uint64_t column;
+          if (!read_uLEB128(obj, &ptr, ptr_end, &column)) {
+            OK = 0;
+            break;
+          }
+          reg_column = column;
+          break;
+        }
         case DW_LNS_const_add_pc:
           adjust_for_special_op(255 - opcode_base, line_base, line_range,
               min_instruction_length, &reg_address, NULL);
@@ -1845,7 +1863,7 @@ static int get_line_number_table(QueryThread* q, CompilationUnitReader* cu_reade
           min_instruction_length, &reg_address, &reg_line);
       if (table) {
         if (!append_line_number_entry(cu_reader, &line_buf, &line_buf_count,
-                reg_address, reg_file, reg_line)) {
+                reg_address, reg_file, reg_line, reg_column)) {
           OK = 0;
         }
       }
@@ -1873,6 +1891,43 @@ static int get_line_number_table(QueryThread* q, CompilationUnitReader* cu_reade
   return 1;
 }
 
+static int compare_uint32(uint32_t a, uint32_t b) {
+  if (a < b)
+    return -1;
+  if (a > b)
+    return 1;
+  return 0;
+}
+
+/**
+ * Compare two line-number entries via source ordering.
+ */
+static int line_number_compare_source(const void* va, const void* vb) {
+  const LineNumberEntry* a = va;
+  const LineNumberEntry* b = vb;
+  int cmp;
+
+  if (a->file_name != b->file_name) {
+    cmp = strcmp(a->file_name, b->file_name);
+    /* although string management should guarantee cmp will be non-zero here,
+       correctness first. */
+    if (cmp)
+      return cmp;
+  }
+
+  cmp = compare_uint32(a->line_number, b->line_number);
+  if (cmp)
+    return cmp;
+
+  return compare_uint32(a->column_number, b->column_number);
+}
+
+static void sort_line_number_table_by_source(LineNumberTable* table) {
+  /* sort the values by line, col */
+  qsort(table->line_number_entries, table->line_number_entry_count,
+        sizeof(LineNumberEntry), line_number_compare_source);
+}
+
 /* find last line number entry with address <= addr; return NULL if none */
 static LineNumberEntry* find_line_number_entry_for(LineNumberTable* table,
     uint64_t addr) {
@@ -1891,6 +1946,98 @@ static LineNumberEntry* find_line_number_entry_for(LineNumberTable* table,
   if (table->line_number_entries[start].address > addr)
     return NULL;
   return &table->line_number_entries[start];
+}
+
+/* find line number entry in table sorted by source coordinates, or NULL if
+ * not found */
+static LineNumberEntry* find_line_number_entry_by_source(LineNumberTable* table,
+                                                         LineNumberEntry* entry) {
+  return bsearch(entry, table->line_number_entries,
+      table->line_number_entry_count, sizeof(LineNumberEntry),
+      line_number_compare_source);
+}
+
+static void copy_internal_line_entry(LineNumberEntry* source,
+                                     CH_DbgDwarf2LineNumberEntry* dest) {
+  dest->file_name     = source->file_name;
+  dest->line_number   = source->line_number;
+  dest->column_number = source->column_number;  
+}
+
+int dwarf2_get_source_info(QueryThread* q, CH_DbgDwarf2Object* obj,
+                           CH_DbgDwarf2Offset defining_object_offset,
+                           CH_Address file_offset,
+                           CH_DbgDwarf2LineNumberEntry* source,
+                           CH_DbgDwarf2LineNumberEntry* next_source) {
+  uint64_t dwarf_addr;
+  CH_DbgDwarf2Offset info_cu_offset =
+    find_compilation_unit_offset_for(obj, defining_object_offset);
+  CompilationUnitReader cu_reader;
+  EntryReader reader;
+  LineNumberTable addr_line_table;
+  LineNumberEntry* entry;
+
+  /* Get the line number table */
+  if (!read_debug_info_header(obj, info_cu_offset, &cu_reader))
+    return 0;
+  if (!begin_reading_entry(&cu_reader, defining_object_offset, &reader))
+    return 0;
+  if (reader.is_empty)
+    return 0;
+
+  if (!translate_file_offset_to_dwarf_address(obj, file_offset, &dwarf_addr))
+    return 0;
+
+  if (!get_line_number_table(q, &cu_reader, &addr_line_table))
+    return 0;
+
+  source->file_name     = NULL;
+  source->line_number   = 0;
+  source->column_number = 0;
+
+  if (next_source) {
+    next_source->file_name     = NULL;
+    next_source->line_number   = 0;
+    next_source->column_number = 0;
+  }
+
+  /* Lookup the line */
+  entry = find_line_number_entry_for(&addr_line_table, dwarf_addr);
+  if (!entry) {
+    free_line_number_table(&addr_line_table);
+    /* It's OK for there to be no source information for an address */
+    return 1;
+  }
+  
+  /* the filename is owned by the reader and does not need to be copied */
+  copy_internal_line_entry(entry, source);
+
+  if (next_source) {
+    /* save entry data since 'entry' is about to go invalid */
+    LineNumberEntry saved_entry = *entry;
+    
+    sort_line_number_table_by_source(&addr_line_table);
+
+    entry = find_line_number_entry_by_source(&addr_line_table, &saved_entry);
+    /* must be non-null because the entry *is* in the table */
+
+    while (entry - addr_line_table.line_number_entries < addr_line_table.line_number_entry_count) {
+      if (strcmp(entry->file_name, saved_entry.file_name)) {
+        /* file names differ, so we don't have a "next line" for this entry */
+        break;
+      }
+      if (entry->line_number != saved_entry.line_number ||
+          entry->column_number != saved_entry.column_number) {
+        /* entries differ, return entry for next_source */
+        copy_internal_line_entry(entry, next_source);
+        break;
+      }
+      ++entry;
+    }
+  }
+
+  free_line_number_table(&addr_line_table);
+  return 1;
 }
 
 /***** ADDRESS RANGES *****/
@@ -2490,8 +2637,8 @@ static int load_global_symbols_recursive(LoadGlobalSymbolsParameters* params,
     }
     
     case DW_TAG_variable:
-      // TODO Fill this in! It's complicated by the fact that the address
-      // might not be real (e.g., global variables can be placed in registers)
+      /* TODO Fill this in! It's complicated by the fact that the address
+       * might not be real (e.g., global variables can be placed in registers) */
       return 1;
     
     case DW_TAG_compile_unit:

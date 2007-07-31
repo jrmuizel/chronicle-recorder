@@ -621,6 +621,36 @@ static int get_dwarf2_function_for(QueryThread* q, CH_TStamp tstamp,
   return 1;
 }
 
+CH_DbgSourceInfo dbg_get_source_info(QueryThread* q, CH_TStamp tstamp,
+                                     CH_Address virtual_addr) {
+  DebugObject* obj;
+  uintptr_t defining_object_offset;
+  CH_MemMapInfo mmap_info;
+  CH_Address file_addr;
+  CH_DbgDwarf2LineNumberEntry line = {NULL, 0, 0};
+  CH_DbgDwarf2LineNumberEntry next_line = {NULL, 0, 0};
+  CH_DbgSourceInfo result = {NULL, 0, 0, 0, 0};
+
+  if (!get_dwarf2_function_for(q, tstamp, virtual_addr, &obj,
+                               &defining_object_offset, &file_addr, &mmap_info))
+    return result;
+  if (!defining_object_offset)
+    return result;
+
+  if (!dwarf2_get_source_info(q, obj->dwarf_obj, defining_object_offset,
+                              file_addr, &line, &next_line))
+    return result;
+
+  /* get_source_info zeroes these in all success return value states */
+  result.filename     = line.file_name;
+  result.start_line   = line.line_number;
+  result.start_column = line.column_number;
+  result.end_line     = next_line.line_number;
+  result.end_column   = next_line.column_number;
+
+  return result;
+}
+
 int dbg_get_container_function(QueryThread* q, JSON_Builder* builder, CH_TStamp tstamp,
                                CH_Address virtual_addr) {
   CH_DbgDwarf2FunctionInfo info;

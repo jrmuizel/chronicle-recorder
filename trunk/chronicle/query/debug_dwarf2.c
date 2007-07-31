@@ -1799,8 +1799,8 @@ static int get_line_number_table(QueryThread* q, CompilationUnitReader* cu_reade
           break;
         }
         case DW_LNS_advance_line: {
-          uint64_t delta;
-          if (!read_uLEB128(obj, &ptr, ptr_end, &delta)) {
+          int64_t delta;
+          if (!read_LEB128(obj, &ptr, ptr_end, &delta)) {
             OK = 0;
             break;
           }

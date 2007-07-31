@@ -1,0 +1,26 @@
+Protocol Extensions
+===================
+
+Add protocol command to read source file contents.
+
+Query Engine Optimizations
+==========================
+
+Cache decompressed data blocks.
+
+Cache computed line number tables.
+
+Cache checkpoints of register state during register replay, so that register
+queries for nearby timestamps can execute efficiently.
+
+Record which types have been sent back to the client; when the client requests
+the details of a type which is equivalent to an already-sent type, return
+an alias to the previously sent type. This will help a lot since the same
+types are repeated with different IDs in each compilation unit.
+
+Fix threading issues and allow multithreaded querying!
+
+Cleanup
+=======
+
+Use bsearch instead of hand-coded binary search.

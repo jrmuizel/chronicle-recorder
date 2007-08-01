@@ -2305,7 +2305,8 @@ static int check_addr_in_entry_range(uint64_t addr, EntryReader* reader,
     if (found) {
       *in_range = low + start_scope_offset <= addr && addr < high;
     }
-  } else {
+  }
+  if (!found) {
     /* check for discontiguous ranges */
     CH_DbgDwarf2Offset range_list;
     CH_DbgDwarf2Object* obj = reader->cu_reader->obj;
@@ -2325,6 +2326,48 @@ static int check_addr_in_entry_range(uint64_t addr, EntryReader* reader,
   return 1;
 }
 
+static int build_range_list(CH_DbgDwarf2Object* obj,
+    int is_address_64bit, uint64_t base_addr,
+    CH_DbgDwarf2Offset range_list, CH_Range** ranges)
+{
+  uint8_t* ptr = (uint8_t*)obj->debug_ranges_data->d_buf + range_list;
+  uint8_t* ptr_end = (uint8_t*)obj->debug_ranges_data->d_buf + obj->debug_ranges_data->d_size;
+
+  CH_GrowBuf buf;
+  int range_count = 0;
+  
+  init_buf(&buf);
+  
+  for (;;) {
+    uint64_t start, end;
+    if (!read_uword(obj, &ptr, ptr_end, &start, is_address_64bit) ||
+        !read_uword(obj, &ptr, ptr_end, &end, is_address_64bit)) {
+      safe_free(buf.data);
+      return 0;
+    }
+    if (!start && !end) {
+      CH_Range* last_range;
+      *ranges = safe_realloc(buf.data, sizeof(CH_Range)*(range_count + 1));
+      last_range = *ranges + range_count;
+      last_range->start = 0;
+      last_range->length = 0;
+      return 1;
+    }
+    
+    if (start == is_address_64bit ? (uint64_t)-1 : (uint32_t)-1) {
+      /* this is a base address selection entry */
+      base_addr = end;
+    } else {
+      CH_Range* range;
+      ++range_count;
+      ensure_buffer_size(&buf, sizeof(CH_Range)*range_count);
+      range = (CH_Range*)buf.data + range_count - 1;
+      range->start = start + base_addr;
+      range->length = end - start;
+    }
+  }
+}
+
 static int lookup_function_info(EntryReader* reader, CH_DbgDwarf2Offset info_offset,
     uint32_t flags, LineNumberTable* line_table, CH_DbgDwarf2FunctionInfo* info) {
   uint64_t result;
@@ -2340,6 +2383,7 @@ static int lookup_function_info(EntryReader* reader, CH_DbgDwarf2Offset info_off
   info->name = NULL;
   info->container_prefix = NULL;
   info->namespace_prefix = NULL;
+  info->ranges = NULL;
   
   if (!read_attribute_reference(reader, DW_AT_abstract_origin, &origin, &found))
     return 0;
@@ -2375,7 +2419,41 @@ static int lookup_function_info(EntryReader* reader, CH_DbgDwarf2Offset info_off
       return 0;
   }
   
-  if ((flags & DWARF2_FUNCTION_PROLOGUE_END) && raw_entry_point) {
+  if (flags & (DWARF2_FUNCTION_RANGES|DWARF2_FUNCTION_PROLOGUE_END)) {
+    uint64_t low;
+    if (!read_attribute_address(reader, DW_AT_low_pc, &low, &found))
+      return 0;
+    
+    if (found) {
+      uint64_t high;
+      if (!read_attribute_address(reader, DW_AT_high_pc, &high, &found))
+        return 0;
+      if (found && low < high) {
+        info->ranges = safe_malloc(sizeof(CH_Range)*2);
+        info->ranges[0].start = low;
+        info->ranges[0].length = high - low;
+        info->ranges[1].start = 0;
+        info->ranges[1].length = 0;
+      }
+    }
+    if (!found) {
+      /* check for discontiguous ranges */
+      CH_DbgDwarf2Offset range_list;
+      CH_DbgDwarf2Object* obj = reader->cu_reader->obj;
+      if (!read_attribute_listptr(reader, DW_AT_ranges, &range_list, &found))
+        return 0;
+      if (found && obj->debug_ranges_data) {
+        uint64_t base_addr = get_cu_base_address(reader->cu_reader);
+        if (base_addr == (uint64_t)-1)
+          return 0;
+        if (!build_range_list(obj, reader->cu_reader->is_address_64bit,
+                              base_addr, range_list, &info->ranges))
+          return 0;
+      }
+    }
+  }
+
+  if ((flags & DWARF2_FUNCTION_PROLOGUE_END) && raw_entry_point && info->ranges) {
     /* This is really bogus. Dwarf2 has support for marking the end of function
        prologue, but gcc doesn't use it. gdb just assumes the first line number
        entry for a function is the prologue and the next one is the start of
@@ -2384,14 +2462,24 @@ static int lookup_function_info(EntryReader* reader, CH_DbgDwarf2Offset info_off
     if (entry &&
         entry + 1 < line_table->line_number_entries + line_table->line_number_entry_count) {
       uint64_t candidate = entry[1].address;
-      int in_function;
-      if (!check_addr_in_entry_range(candidate, reader, 0, 0, &in_function))
-        return 0;
-      if (in_function) {
-        if (!translate_dwarf_address_to_file_offset(reader->cu_reader->obj,
-            candidate, &info->prologue_end))
-          return 0;
+      CH_Range* range;
+      for (range = info->ranges; range->length; ++range) {
+        if (range->start <= candidate && candidate < range->start + range->length) {
+          if (!translate_dwarf_address_to_file_offset(reader->cu_reader->obj,
+              candidate, &info->prologue_end))
+            return 0;
+          break;
+        }
       }
+    }
+  }
+  
+  if (info->ranges) {
+    CH_Range* range;
+    for (range = info->ranges; range->length; ++range) {
+      if (!translate_dwarf_address_to_file_offset(reader->cu_reader->obj,
+          range->start, &range->start))
+        return 0;
     }
   }
   
@@ -2450,6 +2538,12 @@ int dwarf2_lookup_function_info(QueryThread* q,
     free_line_number_table(&line_table);
   }  
   return result;
+}
+
+void dwarf2_destroy_function_info(CH_DbgDwarf2FunctionInfo* info) {
+  safe_free(info->container_prefix);
+  safe_free(info->namespace_prefix);
+  safe_free(info->ranges);
 }
 
 int dwarf2_get_container_function(QueryThread* q, CH_DbgDwarf2Object* obj,

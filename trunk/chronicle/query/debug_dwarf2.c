@@ -4392,6 +4392,7 @@ static int fill_in_type_info(CompilationUnitReader* cu_reader,
       info->kind = CH_TYPE_ARRAY;
       /* XXX support DW_TAG_bit_stride? */
       /* XXX support multidimensional arrays? */
+      info->array_length = -1;
       if (info->bytes_size > 0 && info->inner_type_offset) {
         int64_t elem_size = find_type_size(cu_reader, info->inner_type_offset);
         if (elem_size > 0) {

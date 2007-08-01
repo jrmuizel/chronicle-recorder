@@ -479,6 +479,20 @@ static void output_function_object(DebugObject* defining_object,
     JSON_append_stringdup(builder, "containerPrefix", info->container_prefix);
   }
 
+  if (info->ranges) {
+    CH_Range* range;
+    JSON_open_array(builder, "ranges");
+    for (range = info->ranges; range->length; ++range) {
+      CH_Address virtual_addr =
+        range->start - map_event->offset + map_event->address;
+      JSON_open_object(builder, NULL);
+      JSON_append_int(builder, "start", virtual_addr);
+      JSON_append_int(builder, "length", range->length);
+      JSON_close_object(builder);
+    }
+    JSON_close_array(builder);
+  }
+
   output_compilation_unit_info(&info->cu, builder);
   
   JSON_close_object(builder);
@@ -513,8 +527,8 @@ int dbg_lookup_global_functions(QueryThread* q, JSON_Builder* builder,
         }
       }
     }
-    safe_free(info.container_prefix);
-    safe_free(info.namespace_prefix);
+
+    dwarf2_destroy_function_info(&info);
     ++match;
   }
   return 1;
@@ -670,6 +684,7 @@ int dbg_get_container_function(QueryThread* q, JSON_Builder* builder, CH_TStamp 
     return 0;
   output_function_object(obj, defining_object_offset, mmap_info.map_operation,
                          &info, builder);
+  dwarf2_destroy_function_info(&info);
   return 1;
 }
 

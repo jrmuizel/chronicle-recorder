@@ -115,8 +115,9 @@ typedef struct {
   CH_DbgDwarf2Offset type_offset;
   /** Name of the function, immortal, receiver does not free */
   const char*        name;
-  char*              container_prefix; /* malloced, receiver must free */
-  char*              namespace_prefix; /* malloced, receiver must free */
+  char*              container_prefix;
+  char*              namespace_prefix;
+  CH_Range*          ranges; /* terminated by a range of length zero */
   
   CH_DbgDwarf2CompilationUnitInfo cu;
 } CH_DbgDwarf2FunctionInfo;
@@ -125,7 +126,8 @@ typedef struct {
 #define DWARF2_FUNCTION_IDENTIFIER   0x02
 #define DWARF2_FUNCTION_TYPE         0x04
 #define DWARF2_FUNCTION_PROLOGUE_END 0x08
-#define DWARF2_FUNCTION_ALL          0x0F
+#define DWARF2_FUNCTION_RANGES       0x10
+#define DWARF2_FUNCTION_ALL          0x1F
 /**
  * Retrieve the entry point of a global symbol given its defining offset
  * (as passed by dwarf2_load_global_symbols). The entry point returned is
@@ -138,6 +140,10 @@ typedef struct {
 int dwarf2_lookup_function_info(QueryThread* q,
     CH_DbgDwarf2Object* obj, CH_DbgDwarf2Offset function_offset,
     uint32_t flags, CH_DbgDwarf2FunctionInfo* info);
+/**
+ * This must be called after a successful dwarf2_lookup_function_info.
+ */
+void dwarf2_destroy_function_info(CH_DbgDwarf2FunctionInfo* info);
 /**
  * Return in 'result' the dwarf2 function containing the given
  * object file address, or 0 if there is none known.

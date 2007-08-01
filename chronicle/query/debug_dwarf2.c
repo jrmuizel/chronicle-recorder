@@ -1891,7 +1891,7 @@ static int get_line_number_table(QueryThread* q, CompilationUnitReader* cu_reade
   return 1;
 }
 
-static int compare_uint32(uint32_t a, uint32_t b) {
+static int compare_uint32_t(uint32_t a, uint32_t b) {
   if (a < b)
     return -1;
   if (a > b)
@@ -1899,12 +1899,15 @@ static int compare_uint32(uint32_t a, uint32_t b) {
   return 0;
 }
 
-/**
- * Compare two line-number entries via source ordering.
- */
-static int line_number_compare_source(const void* va, const void* vb) {
-  const LineNumberEntry* a = va;
-  const LineNumberEntry* b = vb;
+static int compare_uint64_t(uint64_t a, uint64_t b) {
+  if (a < b)
+    return -1;
+  if (a > b)
+    return 1;
+  return 0;
+}
+
+static int compare_by_line_number(const LineNumberEntry* a, const LineNumberEntry* b) {
   int cmp;
 
   if (a->file_name != b->file_name) {
@@ -1915,11 +1918,24 @@ static int line_number_compare_source(const void* va, const void* vb) {
       return cmp;
   }
 
-  cmp = compare_uint32(a->line_number, b->line_number);
+  cmp = compare_uint32_t(a->line_number, b->line_number);
   if (cmp)
     return cmp;
 
-  return compare_uint32(a->column_number, b->column_number);
+  return compare_uint32_t(a->column_number, b->column_number);
+}
+
+/**
+ * Compare two line-number entries via source ordering (using address to break
+ * ties).
+ */
+static int line_number_compare_source(const void* va, const void* vb) {
+  const LineNumberEntry* a = va;
+  const LineNumberEntry* b = vb;
+  int cmp = compare_by_line_number(a, b);
+  if (cmp)
+    return cmp;
+  return compare_uint64_t(a->address, b->address);
 }
 
 static void sort_line_number_table_by_source(LineNumberTable* table) {
@@ -1928,7 +1944,27 @@ static void sort_line_number_table_by_source(LineNumberTable* table) {
         sizeof(LineNumberEntry), line_number_compare_source);
 }
 
-/* find last line number entry with address <= addr; return NULL if none */
+/**
+ * Compare two line-number entries by address (using source to break ties).
+ */
+static int line_number_compare_address(const void* va, const void* vb) {
+  const LineNumberEntry* a = va;
+  const LineNumberEntry* b = vb;
+  int cmp = compare_uint64_t(a->address, b->address);
+  if (cmp)
+    return cmp;
+
+  return compare_by_line_number(a, b);
+}
+
+static void sort_line_number_table_by_address(LineNumberTable* table) {
+  /* sort the values by line, col */
+  qsort(table->line_number_entries, table->line_number_entry_count,
+        sizeof(LineNumberEntry), line_number_compare_address);
+}
+
+/* find last line number entry with address <= addr; return NULL if none.
+ * The table must be sorted by address! */
 static LineNumberEntry* find_line_number_entry_for(LineNumberTable* table,
     uint64_t addr) {
   uint32_t start = 0;
@@ -2000,6 +2036,8 @@ int dwarf2_get_source_info(QueryThread* q, CH_DbgDwarf2Object* obj,
     next_source->line_number   = 0;
     next_source->column_number = 0;
   }
+  
+  sort_line_number_table_by_address(&addr_line_table);
 
   /* Lookup the line */
   entry = find_line_number_entry_for(&addr_line_table, dwarf_addr);
@@ -2404,6 +2442,7 @@ int dwarf2_lookup_function_info(QueryThread* q,
   if (flags & DWARF2_FUNCTION_PROLOGUE_END) {
     if (!get_line_number_table(q, &cu_reader, &line_table))
       return 0;
+    sort_line_number_table_by_address(&line_table);
   }
   result = lookup_function_info(&reader, defining_object_offset, flags,
                                 &line_table, info);

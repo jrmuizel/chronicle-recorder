@@ -74,21 +74,22 @@ typedef struct {
 } CH_DbgDwarf2LineNumberEntry;
 
 /**
- * Retrieve the source line/column info for the closest address (source line
- * addr <= given addr), storing the result into the caller-supplied 'line'.
- * If no line information is available, the 'line' structure will be zeroed.
+ * Retrieve the source line/column info for each address (source line
+ * addr <= given addr), storing the result into the caller-supplied 'lines'.
+ * If no line information is available, the 'lines' entry will be zeroed.
  *
- * If 'next_line' is non-NULL, information on the next source line will be
- * provided, if available, otherwise 'next_line' will be zeroed.
+ * If 'next_lines' is non-NULL, information on the next source line will be
+ * provided, if available, otherwise the 'next_lines' entry will be zeroed.
  *
- * Returns false on failure; the state of line and next_line is undefined in
+ * Returns false on failure; the state of lines and next_lines is undefined in
  * such a case.
  */
 int dwarf2_get_source_info(QueryThread* q, CH_DbgDwarf2Object* obj,
                            CH_DbgDwarf2Offset defining_object_offset,
-                           CH_Address file_offset,
-                           CH_DbgDwarf2LineNumberEntry* line,
-                           CH_DbgDwarf2LineNumberEntry* next_line);
+                           CH_Address* file_offsets,
+                           uint32_t file_offsets_count,
+                           CH_DbgDwarf2LineNumberEntry* sources,
+                           CH_DbgDwarf2LineNumberEntry* next_sources);
 
 /**
  * Strings describing the compilation unit.

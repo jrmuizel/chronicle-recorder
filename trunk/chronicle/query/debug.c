@@ -635,34 +635,91 @@ static int get_dwarf2_function_for(QueryThread* q, CH_TStamp tstamp,
   return 1;
 }
 
-CH_DbgSourceInfo dbg_get_source_info(QueryThread* q, CH_TStamp tstamp,
-                                     CH_Address virtual_addr) {
-  DebugObject* obj;
-  uintptr_t defining_object_offset;
-  CH_MemMapInfo mmap_info;
-  CH_Address file_addr;
-  CH_DbgDwarf2LineNumberEntry line = {NULL, 0, 0};
-  CH_DbgDwarf2LineNumberEntry next_line = {NULL, 0, 0};
-  CH_DbgSourceInfo result = {NULL, 0, 0, 0, 0};
+static int process_source_info_run(QueryThread* q, DebugObject* obj,
+    uintptr_t defining_object_offset, uint32_t run_start, uint32_t run_end,
+    CH_Address* file_addrs, CH_DbgDwarf2LineNumberEntry* sources,
+    CH_DbgDwarf2LineNumberEntry* next_sources, CH_DbgSourceInfo* results) {
+  uint32_t run_length = run_end - run_start;
+  uint32_t i;
 
-  if (!get_dwarf2_function_for(q, tstamp, virtual_addr, &obj,
-                               &defining_object_offset, &file_addr, &mmap_info))
-    return result;
-  if (!defining_object_offset)
-    return result;
+  memset(sources, 0, sizeof(CH_DbgDwarf2LineNumberEntry)*run_length);
+  memset(next_sources, 0, sizeof(CH_DbgDwarf2LineNumberEntry)*run_length);
 
   if (!dwarf2_get_source_info(q, obj->dwarf_obj, defining_object_offset,
-                              file_addr, &line, &next_line))
-    return result;
+                              file_addrs, run_length, sources, next_sources))
+    return 0;
 
-  /* get_source_info zeroes these in all success return value states */
-  result.filename     = line.file_name;
-  result.start_line   = line.line_number;
-  result.start_column = line.column_number;
-  result.end_line     = next_line.line_number;
-  result.end_column   = next_line.column_number;
+  for (i = 0; i < run_length; ++i) {
+    CH_DbgSourceInfo* result = &results[i + run_start];
+    result->file_name = sources[i].file_name;
+    result->start_line = sources[i].line_number;
+    result->start_column = sources[i].column_number;
+    result->end_line = next_sources[i].line_number;
+    result->end_column = next_sources[i].column_number;
+  }
+  return 1;
+}
 
-  return result;
+int dbg_get_source_info(QueryThread* q, CH_TStamp tstamp,
+                        CH_Address* virtual_addrs,
+                        uint32_t virtual_addr_count,
+                        CH_DbgSourceInfo* results) {
+  uint32_t i;
+  uint32_t run_start = 0;
+  int ok = 1;
+  DebugObject* last_obj = NULL;
+  uintptr_t last_defining_object_offset = 0;
+  CH_Address* file_addrs =
+    safe_malloc(sizeof(CH_Address)*virtual_addr_count);
+  CH_DbgDwarf2LineNumberEntry* sources =
+    safe_malloc(sizeof(CH_DbgDwarf2LineNumberEntry)*virtual_addr_count);
+  CH_DbgDwarf2LineNumberEntry* next_sources = 
+    safe_malloc(sizeof(CH_DbgDwarf2LineNumberEntry)*virtual_addr_count);
+
+  memset(results, 0, sizeof(CH_DbgSourceInfo)*virtual_addr_count);
+  
+  /* this could be improved quite a bit. right now, get_dwarf2_function_for
+   * is looking for the exact function containing the address, but we only
+   * need the compilation unit. */
+  for (i = 0; i < virtual_addr_count; ++i) {
+    DebugObject* obj;
+    uintptr_t defining_object_offset;
+    CH_MemMapInfo mmap_info;
+    if (!get_dwarf2_function_for(q, tstamp, virtual_addrs[i], &obj,
+        &defining_object_offset, &file_addrs[i - run_start], &mmap_info)) {
+      ok = 0;
+      break;
+    }
+    if (defining_object_offset && obj == last_obj &&
+        last_defining_object_offset == defining_object_offset)
+      continue;
+    
+    if (last_defining_object_offset) {
+      if (!process_source_info_run(q, last_obj, last_defining_object_offset,
+          run_start, i, file_addrs, sources, next_sources, results)) {
+        ok = 0;
+        break;
+      }
+      run_start = i;
+    }
+    
+    if (!defining_object_offset) {
+      run_start = i + 1;
+    }
+    last_defining_object_offset = defining_object_offset;
+    last_obj = obj;
+  }
+  if (last_defining_object_offset) {
+    if (!process_source_info_run(q, last_obj, last_defining_object_offset,
+        run_start, i, file_addrs, sources, next_sources, results)) {
+      ok = 0;
+    }
+  }
+
+  safe_free(next_sources);
+  safe_free(sources);
+  safe_free(file_addrs);
+  return ok;
 }
 
 int dbg_get_container_function(QueryThread* q, JSON_Builder* builder, CH_TStamp tstamp,

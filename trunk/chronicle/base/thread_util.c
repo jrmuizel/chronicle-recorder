@@ -30,10 +30,18 @@
 
 #include <stdio.h>
 
-void semaphore_init(CH_Semaphore* sem) {
+void semaphore_init(CH_Semaphore* semaphore) {
+  semaphore_init_with_callback(semaphore, NULL, NULL);
+}
+
+void semaphore_init_with_callback(CH_Semaphore* sem,
+                                  CH_SemaphoreCompletionCallback callback,
+                                  void* callback_closure) {
   pthread_mutex_init(&sem->mutex, NULL);
   pthread_cond_init(&sem->condition, NULL);
   sem->outstanding_count = 0;
+  sem->callback = callback;
+  sem->callback_closure = callback_closure;
 }
 
 void semaphore_add(CH_Semaphore* sem) {
@@ -43,12 +51,19 @@ void semaphore_add(CH_Semaphore* sem) {
 }
 
 void semaphore_remove(CH_Semaphore* sem) {
+  int run_callback = 0;
+
   pthread_mutex_lock(&sem->mutex);
   sem->outstanding_count--;
   if (sem->outstanding_count == 0) {
+    run_callback = 1;
     pthread_cond_broadcast(&sem->condition);
   }
   pthread_mutex_unlock(&sem->mutex);
+  
+  if (run_callback && sem->callback) {
+    sem->callback(sem->callback_closure);
+  }
 }
 
 void semaphore_wait_for_all_removed(CH_Semaphore* sem) {
@@ -63,7 +78,6 @@ void semaphore_destroy(CH_Semaphore* sem) {
   pthread_mutex_destroy(&sem->mutex);
   pthread_cond_destroy(&sem->condition);
 }
-
 
 typedef struct {
   CH_ThreadProc fun;

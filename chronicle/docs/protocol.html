@@ -192,7 +192,7 @@ requested before the query terminates.
 
 <p>A scan query produces one result object per relevant event. Each
 result object contains a <tt>TStamp</tt> integer field with the
-event's timestamp. There is are integer <tt>start</tt> and <tt>length</tt>
+event's timestamp. There are integer <tt>start</tt> and <tt>length</tt>
 fields describing the event's affected virtual address range. The
 <tt>type</tt> string field is <tt>normal</tt> for a regular access
 and <tt>mmap</tt> for a memory-map change that affected the memory.
@@ -218,7 +218,7 @@ For example, some memory reads by the kernel may not be detected.
 
 <h3>Identifiers</h3>
 
-Functions, variables and types can have identifiers. The following fields can appear:
+<p>Functions, variables and types can have identifiers. The following fields can appear:
 <ul>
 <li><tt>name</tt>: the name of the object as it appears in a source file.
 <li><tt>containerPrefix</tt>: a prefix identifying a type containing the
@@ -515,13 +515,15 @@ debug info may contain one type definition for every input object file.</em>
 <h3>Source Line Info</h3>
 
 <p>The command <tt>findSourceInfo</tt> finds the source coordinates (if any)
-corresponding to <tt>address</tt> at time <tt>TStamp</tt>. If source
-information can be found, the result packet will contain a <tt>filename</tt>
-string field accompanied by 1-based integer <tt>startLine</tt> and
-<tt>startColumn</tt> fields. The file name contains all available directory
-information, although it may not be a complete path. Additionally, we may
-provide a guess at the end of the source element, in the form of 1-based
-<tt>endLine</tt> and <tt>endColumn</tt> fields.
+of a set of addresses. Pass in an integer time <tt>TStamp</tt>, and either
+an <tt>addresses</tt> array of integer addresses or an <tt>address</tt>
+integer address. A series of results is returned; each result
+will contain the originating <tt>address</tt>,
+a <tt>filename</tt> string field accompanied by 1-based integer
+<tt>startLine</tt> and <tt>startColumn</tt> fields. The file name contains all
+available directory information, although it may not be a complete path.
+Additionally, we may provide a guess at the end of the source element, in the
+form of 1-based <tt>endLine</tt> and <tt>endColumn</tt> fields.
 
 <h3>Miscellaneous</h3>
 

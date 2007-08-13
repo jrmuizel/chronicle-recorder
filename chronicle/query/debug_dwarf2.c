@@ -1963,6 +1963,13 @@ static void sort_line_number_table_by_address(LineNumberTable* table) {
         sizeof(LineNumberEntry), line_number_compare_address);
 }
 
+static void clone_line_number_table(LineNumberTable* source, LineNumberTable* dest) {
+  dest->line_number_entry_count = source->line_number_entry_count;
+  dest->line_number_entries = safe_malloc(sizeof(LineNumberEntry)*dest->line_number_entry_count);
+  memcpy(dest->line_number_entries, source->line_number_entries,
+         sizeof(LineNumberEntry)*dest->line_number_entry_count);
+}
+
 /* find last line number entry with address <= addr; return NULL if none.
  * The table must be sorted by address! */
 static LineNumberEntry* find_line_number_entry_for(LineNumberTable* table,
@@ -2002,16 +2009,19 @@ static void copy_internal_line_entry(LineNumberEntry* source,
 
 int dwarf2_get_source_info(QueryThread* q, CH_DbgDwarf2Object* obj,
                            CH_DbgDwarf2Offset defining_object_offset,
-                           CH_Address file_offset,
-                           CH_DbgDwarf2LineNumberEntry* source,
-                           CH_DbgDwarf2LineNumberEntry* next_source) {
+                           CH_Address* file_offsets,
+                           uint32_t file_offsets_count,
+                           CH_DbgDwarf2LineNumberEntry* sources,
+                           CH_DbgDwarf2LineNumberEntry* next_sources) {
   uint64_t dwarf_addr;
   CH_DbgDwarf2Offset info_cu_offset =
     find_compilation_unit_offset_for(obj, defining_object_offset);
   CompilationUnitReader cu_reader;
   EntryReader reader;
   LineNumberTable addr_line_table;
-  LineNumberEntry* entry;
+  LineNumberTable source_line_table;
+  uint32_t i;
+  int ok = 1;
 
   /* Get the line number table */
   if (!read_debug_info_header(obj, info_cu_offset, &cu_reader))
@@ -2021,61 +2031,71 @@ int dwarf2_get_source_info(QueryThread* q, CH_DbgDwarf2Object* obj,
   if (reader.is_empty)
     return 0;
 
-  if (!translate_file_offset_to_dwarf_address(obj, file_offset, &dwarf_addr))
-    return 0;
-
   if (!get_line_number_table(q, &cu_reader, &addr_line_table))
     return 0;
 
-  source->file_name     = NULL;
-  source->line_number   = 0;
-  source->column_number = 0;
-
-  if (next_source) {
-    next_source->file_name     = NULL;
-    next_source->line_number   = 0;
-    next_source->column_number = 0;
+  if (next_sources) {
+    clone_line_number_table(&addr_line_table, &source_line_table);
+    sort_line_number_table_by_source(&source_line_table);
   }
-  
   sort_line_number_table_by_address(&addr_line_table);
 
-  /* Lookup the line */
-  entry = find_line_number_entry_for(&addr_line_table, dwarf_addr);
-  if (!entry) {
-    free_line_number_table(&addr_line_table);
-    /* It's OK for there to be no source information for an address */
-    return 1;
-  }
-  
-  /* the filename is owned by the reader and does not need to be copied */
-  copy_internal_line_entry(entry, source);
-
-  if (next_source) {
-    /* save entry data since 'entry' is about to go invalid */
-    LineNumberEntry saved_entry = *entry;
+  for (i = 0; i < file_offsets_count; ++i) {
+    CH_DbgDwarf2LineNumberEntry* source = &sources[i];
+    CH_DbgDwarf2LineNumberEntry* next_source = next_sources ? &next_sources[i] : NULL;
+    LineNumberEntry* entry;
     
-    sort_line_number_table_by_source(&addr_line_table);
+    if (!translate_file_offset_to_dwarf_address(obj, file_offsets[i], &dwarf_addr)) {
+      ok = 0;
+      break;
+    }
 
-    entry = find_line_number_entry_by_source(&addr_line_table, &saved_entry);
-    /* must be non-null because the entry *is* in the table */
+    source->file_name     = NULL;
+    source->line_number   = 0;
+    source->column_number = 0;
 
-    while (entry - addr_line_table.line_number_entries < addr_line_table.line_number_entry_count) {
-      if (strcmp(entry->file_name, saved_entry.file_name)) {
-        /* file names differ, so we don't have a "next line" for this entry */
-        break;
+    if (next_source) {
+      next_source->file_name     = NULL;
+      next_source->line_number   = 0;
+      next_source->column_number = 0;
+    }
+  
+    /* Lookup the line */
+    entry = find_line_number_entry_for(&addr_line_table, dwarf_addr);
+    if (!entry) {
+      /* It's OK for there to be no source information for an address */
+      continue;
+    }
+    
+    /* the filename is owned by the reader and does not need to be copied */
+    copy_internal_line_entry(entry, source);
+
+    if (next_source) {
+      /* save entry data since 'entry' is about to go invalid */
+      LineNumberEntry saved_entry = *entry;
+    
+      entry = find_line_number_entry_by_source(&source_line_table, &saved_entry);
+      /* must be non-null because the entry *is* in the table */
+
+      while (entry - source_line_table.line_number_entries < source_line_table.line_number_entry_count) {
+        if (strcmp(entry->file_name, saved_entry.file_name)) {
+          /* file names differ, so we don't have a "next line" for this entry */
+          break;
+        }
+        if (entry->line_number != saved_entry.line_number ||
+            entry->column_number != saved_entry.column_number) {
+          /* entries differ, return entry for next_source */
+          copy_internal_line_entry(entry, next_source);
+          break;
+        }
+        ++entry;
       }
-      if (entry->line_number != saved_entry.line_number ||
-          entry->column_number != saved_entry.column_number) {
-        /* entries differ, return entry for next_source */
-        copy_internal_line_entry(entry, next_source);
-        break;
-      }
-      ++entry;
     }
   }
 
+  free_line_number_table(&source_line_table);
   free_line_number_table(&addr_line_table);
-  return 1;
+  return ok;
 }
 
 /***** ADDRESS RANGES *****/

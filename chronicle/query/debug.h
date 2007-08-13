@@ -67,7 +67,7 @@ void dbg_release_fd_for_mapped_file(CH_DBAddrMapEntry* e, int fd);
 
 typedef struct {
   /* filename is eternal and must not be freed */
-  const char* filename;
+  const char* file_name;
   int32_t start_line, start_column;
   int32_t end_line, end_column;
 } CH_DbgSourceInfo;
@@ -80,9 +80,12 @@ typedef struct {
  * information can be resolved, it will be provided in end_line and
  * end_column; if it cannot be resolved, both will be zero. End info
  * cannot be provided without start info.
+ * We return NULL on failure, otherwise a malloc'ed array of results.
  */
-CH_DbgSourceInfo dbg_get_source_info(QueryThread* q, CH_TStamp tstamp,
-                                     CH_Address virtual_addr);
+int dbg_get_source_info(QueryThread* q, CH_TStamp tstamp,
+                        CH_Address* virtual_addrs,
+                        uint32_t virtual_addr_count,
+                        CH_DbgSourceInfo* results);
 
 #define AUTOCOMPLETE_KIND_GLOBAL_TYPE     0x01
 #define AUTOCOMPLETE_KIND_GLOBAL_VARIABLE 0x02

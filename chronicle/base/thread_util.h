@@ -32,6 +32,8 @@
 #include <pthread.h>
 #include <stdint.h>
 
+typedef void (* CH_SemaphoreCompletionCallback)(void* closure);
+
 /**
  * Simple semaphore implementation. 'outstanding_count' is always >= 0.
  */
@@ -39,9 +41,18 @@ typedef struct {
   pthread_mutex_t mutex;
   pthread_cond_t condition;
   uint32_t outstanding_count;
+  CH_SemaphoreCompletionCallback callback;
+  void* callback_closure;
 } CH_Semaphore;
 
+/** The callback is invoked whenever the semaphore's count reaches zero; it
+ * is invoked with no locks held, so the semaphore's count may have increased
+ * above zero again unless the semaphore user can ensure this doesn't happen.
+ * Note that threads waiting for the semaphore to reach zero will have been
+ * notified but those notifications may not have run before the callback runs. */
 void semaphore_init(CH_Semaphore* sem);
+void semaphore_init_with_callback(CH_Semaphore* sem, CH_SemaphoreCompletionCallback callback,
+                                  void* callback_closure);
 /** Add one to outstanding_count. */
 void semaphore_add(CH_Semaphore* sem);
 /** Remove one from outstanding_count, waiting until it's > 0 if necessary. */

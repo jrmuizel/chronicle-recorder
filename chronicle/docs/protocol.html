@@ -214,6 +214,21 @@ memory areas may be reported in any order.
 <p>Every effort is made to catch events but some events may be missing.
 For example, some memory reads by the kernel may not be detected.
 
+<h3>Counting Scan Results</h3>
+
+<p>A scan-count query uses command <tt>scanCount</tt>. The <tt>beginTStamp</tt>
+and <tt>endTStamp</tt> integer fields are mandatory and indicate the
+time range over which the scan should search for events: <tt>beginTStamp</tt>
+is inclusive and <tt>endTStamp</tt> is exclusive. <tt>beginTStamp</tt>
+must be less than <tt>endTStamp</tt>. The <tt>map</tt> string field
+names the map to be scanned. There is also an <tt>address</tt> integer field
+specifying a single byte for which events should be counted. The result
+includes the number of "normal" events in a single integer field
+<tt>count</tt>, unless MEM_MAP was specified, in which case the number of
+"mmap" events is returned. (The "number of results" is not well defined when
+the input range is broken into many ranges internally, which is why this
+query only takes a single byte.)
+
 <h2>Debug Information</h2>
 
 <h3>Identifiers</h3>

@@ -832,7 +832,8 @@ static int scan_callback(void* closure, QueryThread* q, CH_EffectMapReader* read
 
 static void scan_memory_map(QueryThread* q, CH_TStamp begin_tstamp,
     CH_TStamp end_tstamp, CH_EffectScanMode mode, int direction, CH_Range* range_list,
-    uint32_t num_ranges) {
+    uint32_t num_ranges, CH_EffectMapReaderScanResultCallback callback,
+    void* callback_closure) {
   while (num_ranges > 0) {
     CH_MemMapHistory* h = find_nearest_memory_map_history_for(range_list->start);
     CH_Address start = range_list->start;
@@ -856,7 +857,7 @@ static void scan_memory_map(QueryThread* q, CH_TStamp begin_tstamp,
     for (i = 0; i < h->num_map_operations; ++i) {
       CH_DBAddrMapEntry* e = &get_address_map_entries()[h->map_operations[i]];
       if (e->tstamp >= begin_tstamp && e->tstamp < end_tstamp) {
-        scan_callback(NULL, q, NULL, e->tstamp, start, end, ACCESS_MMAP,
+        callback(callback_closure, q, NULL, e->tstamp, start, end, ACCESS_MMAP,
                       &h->map_operations[i]);
       }
     }
@@ -918,7 +919,8 @@ static void scan_command(QueryThread* q, JSON_Value* v) {
     return;
 
   if (JSON_is_string(map, "MEM_MAP")) {
-    scan_memory_map(q, begin_tstamp, end_tstamp, mode, direction, range_list, num_ranges);
+    scan_memory_map(q, begin_tstamp, end_tstamp, mode, direction, range_list,
+        num_ranges, scan_callback, NULL);
     safe_free(range_list);
     return;
   }
@@ -938,6 +940,98 @@ static void scan_command(QueryThread* q, JSON_Value* v) {
   
   effect_map_reader_do_scan(r, q, begin_tstamp, end_tstamp, range_list, num_ranges,
                        mode, direction, 0, scan_callback, NULL, NULL);
+}
+
+typedef struct {
+  QueryThread* q;
+  CH_Semaphore semaphore;
+  pthread_mutex_t mutex;
+  int count;
+  int count_mmaps;
+} ScanCountClosure;
+
+static int scan_count_callback(void* closure, QueryThread* q, CH_EffectMapReader* reader,
+    CH_TStamp tstamp, CH_Address start_addr, CH_Address end_addr,
+    CH_EffectScanResult result, void* data) {
+  ScanCountClosure* cl = closure;
+
+  pthread_mutex_lock(&cl->mutex);
+  if ((result == ACCESS_MMAP) == cl->count_mmaps) {
+    ++cl->count;
+  }
+  pthread_mutex_unlock(&cl->mutex);
+  return 1;
+}
+
+static void finish_scan_count(void* closure) {
+  ScanCountClosure* cl = closure;
+  JSON_Builder builder;
+  JSON_builder_init_object(&builder);
+
+  JSON_append_int(&builder, "count", cl->count);
+  complete_work(cl->q, 1, &builder);
+  
+  semaphore_destroy(&cl->semaphore);
+  pthread_mutex_destroy(&cl->mutex);
+  safe_free(cl);
+}
+
+static void scan_count_command(QueryThread* q, JSON_Value* v) {
+  JSON_Value* map = check_field_of_type(q, v, "command", "map", JSON_STRING);
+  JSON_Value* beginTStamp =
+    check_field_of_type(q, v, "command", "beginTStamp", JSON_INT);
+  JSON_Value* endTStamp =
+    check_field_of_type(q, v, "command", "endTStamp", JSON_INT);
+  JSON_Value* address =
+    check_field_of_type(q, v, "command", "address", JSON_INT);
+  int i;
+  CH_TStamp begin_tstamp, end_tstamp;
+  CH_EffectMapReader* r;
+  CH_Range* range_list;
+  ScanCountClosure* closure;
+
+  if (!map || !beginTStamp || !endTStamp || !address)
+    return;
+
+  begin_tstamp = beginTStamp->v.i;
+  end_tstamp = endTStamp->v.i;
+
+  range_list = safe_malloc(sizeof(CH_Range));
+  range_list[0].start = address->v.i;
+  range_list[0].length = 1;
+
+  add_work(q, 1);
+
+  closure = safe_malloc(sizeof(ScanCountClosure));
+  closure->q = q;
+  closure->count = 0;
+  closure->count_mmaps = JSON_is_string(map, "MEM_MAP");
+  pthread_mutex_init(&closure->mutex, NULL);
+  semaphore_init_with_callback(&closure->semaphore, finish_scan_count, closure);
+  
+  if (closure->count_mmaps) {
+    scan_memory_map(q, begin_tstamp, end_tstamp, MODE_FIND_ALL, 1, range_list,
+        1, scan_count_callback, closure);
+    finish_scan_count(closure);
+    safe_free(range_list);
+    return;
+  }
+  
+  r = NULL;
+  for (i = 0; i < num_builtin_maps; ++i) {
+    if (JSON_is_string(map, effect_map_reader_get_name(&builtin_maps[i]))) {
+      r = &builtin_maps[i];
+      break;
+    }
+  }
+  if (!r) {
+    debugger_error(q, "bad.map.in.command", "Unknown map name");
+    safe_free(range_list);
+    return;
+  }
+  
+  effect_map_reader_do_scan(r, q, begin_tstamp, end_tstamp, range_list, 1,
+      MODE_FIND_ALL, 1, 0, scan_count_callback, closure, &closure->semaphore);
 }
 
 static void find_source_info_command(QueryThread* q, JSON_Value* v) {
@@ -1223,6 +1317,7 @@ static Command commands[] = {
   {"readMem", read_mem_command},
   {"readReg", read_reg_command},
   {"scan", scan_command},
+  {"scanCount", scan_count_command},
   {NULL, NULL}
 };
 

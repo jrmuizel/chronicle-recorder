@@ -18,4 +18,4 @@ I create a wrapper script `chronicle` that looks like this:
 
 PATH=/home/roc/chronicle:$PATH VALGRIND_LIB=/home/roc/chronicle/valgrind/.in_place /home/roc/chronicle/valgrind/coregrind/valgrind --tool=chronicle $*
 }}}
-(This assumes Chronicle has been built in `/home/roc/chronicle`...) Then just run `chronicle --db /tmp/myrun.db ...program and arguments`. This should run the program as normal (but rather slowly) and leave a (large) database file in /tmp/myrun.db.
+(This assumes Chronicle has been built in `/home/roc/chronicle`.) Then just run `chronicle --db /tmp/myrun.db ...program and arguments...`. This should run the program as normal (but rather slowly) and leave a (large) database file in /tmp/myrun.db.

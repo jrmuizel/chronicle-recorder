@@ -1,4 +1,4 @@
-#summary Notes on getting chronicle to build and work
+#summary Notes on getting Chronicle to build and work
 #labels Phase-Deploy,Featured
 
 = Build Issues =
@@ -6,6 +6,5 @@
 There is no configure script. Chronicle doesn't depend on much and it only runs on Linux with gcc right now. It should build and run on any Linux system with gcc, providing the following packages are installed:
 
  * libelf
-
 
 

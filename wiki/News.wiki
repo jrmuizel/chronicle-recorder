@@ -3,6 +3,14 @@
 
 = News =
 
+== 16/8/07: New features ==
+
+I added a "scanCount" command to the query engine to count the number of memory effects in a given memory and timestamp range.
+
+I also made "findSourceInfo" accept a range of addresses and return one source information record for each address. This allows efficient lookup over many addresses.
+
+Both of these features were motivated by the Eclipse UI I'm developing.
+
 == 27/7/07: Bug fixes, contributions ==
 
 Andrew Sutherland has announced some tools he's building on Chronicle! See [http://www.visophyte.org/blog/2007/07/26/chroniquery-chronicle-recorder-and-python-boogie-down/]. He has some Chronicle patches that I hope to integrate shortly.

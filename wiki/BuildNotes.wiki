@@ -6,7 +6,7 @@
 There is no configure script. Chronicle doesn't depend on much and it only runs on Linux with gcc right now. It should build and run on any Linux system with gcc, providing the following packages are installed:
  * libelf
 
-Just download it (or check out from Subversion) and run "make" in the Chronicle directory. Run "make check" to verify that it actually works.
+Check it out from Subversion trunk (do not download the initial code drop, since it is very old and won't work) and run "make" in the Chronicle directory. Run "make check" to verify that it actually works.
 
 Chronicle requires the x86 or AMD64 architectures.
 

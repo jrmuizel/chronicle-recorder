@@ -1,26 +1,24 @@
 #include <stdio.h>
 #include <unistd.h>
+#include <errno.h>
 
-static void passStackPtr2(long ptr) {
-  printf("Stackptr2: %p\n", (void*)ptr);
+static int local1(int a, int b) {
+  puts("");
+  return a + b;
 }
 
-static void printStackPtr2() {
-  int foo;
-  passStackPtr2(&foo);
+static void call2() {
+  puts("");
 }
 
-static void passStackPtr(long ptr) {
-  printf("Stackptr: %p\n", (void*)ptr);
-}
-
-static void printStackPtr() {
-  int foo;
-  passStackPtr(&foo);
-  printStackPtr2();
+static int call1() {
+  int foo = errno;
+  call2();
+  return foo;
 }
 
 int main(int argc, char** argv) {
-  printStackPtr();
-  return 0;
+  int a = call1();
+  int b = local1(3, 5);
+  return (a + b)/1000;
 }

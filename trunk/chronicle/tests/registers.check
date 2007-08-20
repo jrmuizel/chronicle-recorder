@@ -108,23 +108,22 @@ die unless defined($arch);
 my $SPreg = $arch eq 'x86' ? 'esp' : 'rsp';
 $sys_bits = $arch eq 'x86' ? 32 : 64;
 
-my @passStackPtr = &find_function_calls('passStackPtr');
-die unless scalar(@passStackPtr) == 1;
+my @local1Entry = &find_function_calls('local1');
+die unless scalar(@local1Entry) == 1;
 
-my $ptrValue = &get_param_value('ptr', $passStackPtr[0]->{TStamp});
+my $aValue = &get_param_value('a', $local1Entry[0]->{TStamp});
+die unless $aValue == 3;
+my $bValue = &get_param_value('b', $local1Entry[0]->{TStamp});
+die unless $bValue == 5;
 
-my @passStackPtr2 = &find_function_calls('passStackPtr2');
-die unless scalar(@passStackPtr2) == 1;
+my @call1Entry = &find_function_calls('call1');
+die unless scalar(@call1Entry) == 1;
 
-my $ptr2Value = &get_param_value('ptr', $passStackPtr2[0]->{TStamp});
+my $call1SP = &get_reg_value($SPreg, $call1Entry[0]->{TStamp}); 
 
-my @printStackPtr = &find_function_calls('printStackPtr');
-die unless scalar(@printStackPtr) == 1;
+my @call2Entry = &find_function_calls('call2');
+die unless scalar(@call2Entry) == 1;
 
-my $printStackPtrSP = &get_reg_value($SPreg, $printStackPtr[0]->{TStamp}); 
+my $call2SP = &get_reg_value($SPreg, $call2Entry[0]->{TStamp}); 
 
-printf("printStackPtrSP=%x, ptrValue=%x, ptr2Value=%x\n",
-       $printStackPtrSP, $ptrValue, $ptr2Value);
-
-die unless $printStackPtrSP < $ptrValue;
-die unless $ptr2Value < $printStackPtrSP;
+die unless $call2SP < $call1SP;

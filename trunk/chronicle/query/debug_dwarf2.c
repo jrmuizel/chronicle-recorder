@@ -105,10 +105,10 @@ static int skip_bytes(CH_DbgDwarf2Object* obj, uint8_t** ptr, uint8_t* end,
   return 1;
 }
 
-static int align_bytes(CH_DbgDwarf2Object* obj, uint8_t** ptr, uint8_t* end,
-                       int alignment)
+static int align_bytes(CH_DbgDwarf2Object* obj, uint8_t* base, uint8_t** ptr,
+                       uint8_t* end, int alignment)
 {
-  uintptr_t v = (uintptr_t)*ptr;
+  uintptr_t v = (uintptr_t)(*ptr - base);
   uintptr_t align_mask = alignment - 1;
   return skip_bytes(obj, ptr, end, align_mask - ((v + align_mask)&align_mask));
 }
@@ -1166,8 +1166,9 @@ static CH_DbgDwarf2Offset find_end_of_entry_subtree(EntryReader* reader) {
   }
 }
 
-static CH_DbgDwarf2Offset find_compilation_unit_offset_for(
-    CH_DbgDwarf2Object* obj, CH_DbgDwarf2Offset defining_object_offset) {
+static int find_compilation_unit_offset_for(
+    CH_DbgDwarf2Object* obj, CH_DbgDwarf2Offset defining_object_offset,
+    CH_DbgDwarf2Offset* cu_offset) {
   uint32_t start = 0;
   uint32_t end = obj->num_compilation_units;
   while (start + 2 <= end) {
@@ -1178,9 +1179,8 @@ static CH_DbgDwarf2Offset find_compilation_unit_offset_for(
       start = mid;
     }
   }
-  if (start == end)
-    return 0;
-  return obj->debuginfo_compilation_unit_offsets[start];
+  *cu_offset = obj->debuginfo_compilation_unit_offsets[start];
+  return 1;
 }
 
 /**
@@ -2014,14 +2014,16 @@ int dwarf2_get_source_info(QueryThread* q, CH_DbgDwarf2Object* obj,
                            CH_DbgDwarf2LineNumberEntry* sources,
                            CH_DbgDwarf2LineNumberEntry* next_sources) {
   uint64_t dwarf_addr;
-  CH_DbgDwarf2Offset info_cu_offset =
-    find_compilation_unit_offset_for(obj, defining_object_offset);
+  CH_DbgDwarf2Offset info_cu_offset;
   CompilationUnitReader cu_reader;
   EntryReader reader;
   LineNumberTable addr_line_table;
   LineNumberTable source_line_table;
   uint32_t i;
   int ok = 1;
+  
+  if (!find_compilation_unit_offset_for(obj, defining_object_offset, &info_cu_offset))
+      return 0;
 
   /* Get the line number table */
   if (!read_debug_info_header(obj, info_cu_offset, &cu_reader))
@@ -2173,7 +2175,7 @@ static void build_aranges_unlocked(CH_DbgDwarf2Object* obj) {
     }
     
     /* align to the size of a tuple, i.e., twice the size of an address */
-    if (!align_bytes(obj, &ptr, next, is_address_64bit ? 16 : 8))
+    if (!align_bytes(obj, data->d_buf, &ptr, next, is_address_64bit ? 16 : 8))
       break;
 
     for (;;) {
@@ -2221,8 +2223,8 @@ static void build_aranges_unlocked(CH_DbgDwarf2Object* obj) {
   obj->num_aranges = count;
 }
 
-static CH_DbgDwarf2Offset find_compilation_unit_for_address(CH_DbgDwarf2Object* obj,
-                                                            uint64_t dwarf_addr) {
+static int find_compilation_unit_for_address(CH_DbgDwarf2Object* obj,
+    uint64_t dwarf_addr, CH_DbgDwarf2Offset* cu_offset) {
   uint32_t start;
   uint32_t end;
   ARangeEntry* aranges;
@@ -2248,9 +2250,10 @@ static CH_DbgDwarf2Offset find_compilation_unit_for_address(CH_DbgDwarf2Object* 
     }
   }
 
-  if (aranges[start].start <= dwarf_addr && aranges[start].end > dwarf_addr)
-    return aranges[start].compilation_unit;
-  return 0;
+  if (aranges[start].start > dwarf_addr || aranges[start].end <= dwarf_addr)
+    return 0;
+  *cu_offset = aranges[start].compilation_unit;
+  return 1;
 }
 
 static int find_address_in_range_list(CH_DbgDwarf2Object* obj,
@@ -2533,12 +2536,14 @@ static int lookup_function_info(EntryReader* reader, CH_DbgDwarf2Offset info_off
 int dwarf2_lookup_function_info(QueryThread* q,
     CH_DbgDwarf2Object* obj, CH_DbgDwarf2Offset defining_object_offset,
     uint32_t flags, CH_DbgDwarf2FunctionInfo* info) {
-  CH_DbgDwarf2Offset info_cu_offset =
-    find_compilation_unit_offset_for(obj, defining_object_offset);
+  CH_DbgDwarf2Offset info_cu_offset;
   CompilationUnitReader cu_reader;
   EntryReader reader;
   LineNumberTable line_table;
   int result;
+  
+  if (!find_compilation_unit_offset_for(obj, defining_object_offset, &info_cu_offset))
+    return 0;
   
   if (!read_debug_info_header(obj, info_cu_offset, &cu_reader))
     return 0;
@@ -2575,8 +2580,7 @@ int dwarf2_get_container_function(QueryThread* q, CH_DbgDwarf2Object* obj,
 
   if (!translate_file_offset_to_dwarf_address(obj, file_offset, &dwarf_addr))
     return 0;
-  cu = find_compilation_unit_for_address(obj, dwarf_addr);
-  if (!cu)
+  if (!find_compilation_unit_for_address(obj, dwarf_addr, &cu))
     return 0;
 
   if (!read_debug_info_header(obj, cu, &cu_reader))
@@ -3187,13 +3191,15 @@ static CH_DbgDwarf2VariableInfo* get_variables(CH_DbgDwarf2Object* obj,
                                                CH_DbgDwarf2Offset owner_offset,
                                                uint64_t pc_addr,
                                                CH_Dwarf2_DW_TAG tag) {
-  CH_DbgDwarf2Offset info_cu_offset =
-    find_compilation_unit_offset_for(obj, owner_offset);
+  CH_DbgDwarf2Offset info_cu_offset;
   CompilationUnitReader cu_reader;
   EntryReader reader;
   CH_GrowBuf result;
   uint32_t variable_count = 0;
   CH_DbgDwarf2VariableInfo* last;
+  
+  if (!find_compilation_unit_offset_for(obj, owner_offset, &info_cu_offset))
+    return NULL;
   
   if (!read_debug_info_header(obj, info_cu_offset, &cu_reader))
     return NULL;
@@ -4240,13 +4246,15 @@ CH_DbgValuePiece* dwarf2_examine_value(QueryThread* q, CH_DbgDwarf2Object* obj,
                                        CH_DbgProgramState* state,
                                        CH_Range** valid_instruction_ranges) {
   uint64_t dwarf_pc_addr;
-  CH_DbgDwarf2Offset info_cu_offset =
-    find_compilation_unit_offset_for(obj, function_offset);
+  CH_DbgDwarf2Offset info_cu_offset;
   CompilationUnitReader cu_reader;
   EntryReader function_reader;
   EntryReader variable_reader;
   CH_DbgValuePiece* result;
   Dwarf2ExprInterpreter interp;
+  
+  if (!find_compilation_unit_offset_for(obj, function_offset, &info_cu_offset))
+    return NULL;
 
   if (!translate_file_offset_to_dwarf_address(obj, pc_addr, &dwarf_pc_addr))
     return NULL;
@@ -4578,12 +4586,14 @@ static int fill_in_type_info(CompilationUnitReader* cu_reader,
 int dwarf2_lookup_type_info(QueryThread* q, CH_DbgDwarf2Object* obj,
                             CH_DbgDwarf2Offset type_offset,
                             CH_DbgDwarf2TypeInfo* info) {
-  CH_DbgDwarf2Offset info_cu_offset =
-    find_compilation_unit_offset_for(obj, type_offset);
+  CH_DbgDwarf2Offset info_cu_offset;
   CompilationUnitReader cu_reader;
   CH_StringBuf container_prefix;
   CH_StringBuf namespace_prefix;
 
+  if (!find_compilation_unit_offset_for(obj, type_offset, &info_cu_offset))
+    return 0;
+  
   if (!read_debug_info_header(obj, info_cu_offset, &cu_reader))
     return 0;
 
@@ -4664,10 +4674,11 @@ static int iterate_type_child_entries_recursive(CompilationUnitReader* cu_reader
 static int iterate_type_child_entries(CH_DbgDwarf2Object* obj,
     CH_DbgDwarf2Offset type_offset, ScanChildEntriesCallback callback,
     void* closure) {
-  CH_DbgDwarf2Offset info_cu_offset =
-    find_compilation_unit_offset_for(obj, type_offset);
+  CH_DbgDwarf2Offset info_cu_offset;
   CompilationUnitReader cu_reader;
     
+  if (!find_compilation_unit_offset_for(obj, type_offset, &info_cu_offset))
+    return 0;
   if (!read_debug_info_header(obj, info_cu_offset, &cu_reader))
     return 0;
   return iterate_type_child_entries_recursive(&cu_reader, type_offset, callback, closure);

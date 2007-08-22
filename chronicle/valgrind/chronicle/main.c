@@ -1568,6 +1568,7 @@ static IRBB* ch_instrument(VgCallbackClosure* closure, IRBB* bb_in, VexGuestLayo
                            IRType gWordTy, IRType hWordTy )
 {
   IRBB* bb;
+  Bool trace_this = False;
   int i;
   Bool recorded_instruction_retirement = True;
   IRTemp tmp_trace_rec_ptr;
@@ -1937,10 +1938,64 @@ static IRBB* ch_instrument(VgCallbackClosure* closure, IRBB* bb_in, VexGuestLayo
     case Ist_Dirty: {
       IRDirty* dirty = st->Ist.Dirty.details;
       int j;
-      tl_assert2(dirty->mFx == Ifx_None,
-                 "memory-touching dirties not supported");
+      
+      if (control_flags & CH_INITFLAG_LOG_REG_READS) {
+        // XXX implement this
+        tl_assert2(dirty->mFx != Ifx_Read && dirty->mFx != Ifx_Modify,
+                   "Memory-reading dirties not logged yet");
+
+        for (j = 0; j < dirty->nFxState; ++j) {
+          IREffect e = dirty->fxState[j].fx;
+          int offset = dirty->fxState[j].offset;
+          int size = dirty->fxState[j].size;
+          uint8_t reg_set[256];
+          convert_offsets_to_reg_set(offset, offset + size, reg_set);
+          if (e == Ifx_Read || e == Ifx_Modify) {
+            int reg;
+            for (reg = 0; reg < 256; ++reg) {
+              if (reg_set[reg]) {
+                CH_RegEffect effect =
+                  { instruction_count - 1, CH_EFFECT_REG_READ,
+                    get_full_reg_bytes_log2(reg), reg, 0, 0 };
+                add_reg_effect(&effect, NULL, NULL);
+              }
+            }
+          }
+        }
+      }
       
       addStmtToIRBB(bb, st);
+      
+      if (dirty->mFx == Ifx_Write || dirty->mFx == Ifx_Modify) {
+        for (j = 0; j < dirty->mSize; ++j) {
+          IRTemp addr = newIRTemp(bb->tyenv, IR_ptr_type);
+          IRExpr* taddr = IRExpr_Binop(IR_ptr_add, dirty->mAddr,
+                  IRExpr_Const(IR_const_PTR(j)));
+          IRTemp tmp_byte = newIRTemp(bb->tyenv, Ity_I8);
+          IRConst* c;
+          intptr_t addr_offset;
+          IRTemp addr_temp;
+          Bool found_base_temp;
+          Bool need_offset;
+          
+          addStmtToIRBB(bb, IRStmt_Tmp(addr, taddr));
+          addStmtToIRBB(bb, IRStmt_Tmp(tmp_byte, IRExpr_Load(Iend_LE, Ity_I8, IRExpr_Tmp(addr))));
+
+          c = add_trace_store(bb, tmp_trace_rec_ptr, 0, IRExpr_Tmp(tmp_byte));
+          found_base_temp = find_base_temp(bb_in, i, dirty->mAddr,
+                                           &addr_offset, &addr_temp);
+          need_offset = add_mem_effect(CH_MAP_MEM_WRITE, instruction_count - 1,
+                      addr_temp, addr_offset, 1, c);
+
+          tl_assert2(found_base_temp, "Bad constant offset for store!");
+
+          if (need_offset) {
+            add_trace_store(bb, tmp_trace_rec_ptr, trace_record_offset,
+                    IRExpr_Tmp(addr_temp));
+            trace_record_offset += sizeof(uintptr_t);
+          }
+        }
+      }
       
       for (j = 0; j < dirty->nFxState; ++j) {
         IREffect e = dirty->fxState[j].fx;
@@ -1948,18 +2003,6 @@ static IRBB* ch_instrument(VgCallbackClosure* closure, IRBB* bb_in, VexGuestLayo
         int size = dirty->fxState[j].size;
         uint8_t reg_set[256];
         convert_offsets_to_reg_set(offset, offset + size, reg_set);
-        if ((control_flags & CH_INITFLAG_LOG_REG_READS) &&
-            (e == Ifx_Read || e == Ifx_Modify)) {
-          int reg;
-          for (reg = 0; reg < 256; ++reg) {
-            if (reg_set[reg]) {
-              CH_RegEffect effect =
-                { instruction_count - 1, CH_EFFECT_REG_READ,
-                  get_full_reg_bytes_log2(reg), reg, 0, 0 };
-              add_reg_effect(&effect, NULL, NULL);
-            }
-          }
-        }
         if (e == Ifx_Write || e == Ifx_Modify) {
           int reg;
           for (reg = 0; reg < 256; ++reg) {
@@ -2065,7 +2108,12 @@ static IRBB* ch_instrument(VgCallbackClosure* closure, IRBB* bb_in, VexGuestLayo
     VG_(memcpy)(define_code_output, reg_effects, reg_effects_used_size);
   }
   
-  if (0) ppIRBB(bb);
+  if (trace_this) {
+    ppIRBB(bb_in);
+    ppIRBB(bb);
+  } else {
+    if (0) ppIRBB(bb);
+  }
 
   return bb;
 }

@@ -773,13 +773,29 @@ static CH_DbgDwarf2Object* load_dwarf2_for(int fd, const char* name) {
   if (obj)
     return obj;
 
-  /* fd was closed. Try to open external debug info. */
+  /* fd was closed. Try to open external debug info.  We use two simple
+     heuristics here because it is reasonably simple.  The official way
+     to do this is to look for a .gnu_debuglink section in an object,
+     but that still requires heuristics after the fact too, because you
+     have to know what path to look on; all it gives you are the filename
+     (no path) and a CRC32. */
+  /* on fedora/red hat platforms, debug packages are installed into
+     /usr/lib/debug with the same path as the actual binary and ".debug"
+     appended.  So /usr/bin/python2.5 becomes
+     /usr/lib/debug/usr/bin/python2.5.debug. */
   snprintf(buf, sizeof(buf), "/usr/lib/debug%s.debug", name);
   buf[sizeof(buf) - 1] = 0;
   fd = open(buf, O_RDONLY);
   if (fd < 0) {
-    errno = 0;
-    return NULL;
+    /* wasn't there, try the debian/ubuntu standard which is the same place
+       but we don't append ".debug" */
+    snprintf(buf, sizeof(buf), "/usr/lib/debug%s", name);
+    buf[sizeof(buf) - 1] = 0;
+    fd = open(buf, O_RDONLY);
+    if (fd < 0) {
+      errno = 0;
+      return NULL;
+    }
   }
   return dwarf2_load(fd, buf);
 }

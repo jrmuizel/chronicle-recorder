@@ -2345,7 +2345,7 @@ DISTCHECK_CONFIGURE_FLAGS=--with-vex=$VEX_DIR
 
 
 # Checks for programs.
-CFLAGS="-Wno-long-long -fno-stack-protector"
+CFLAGS="-Wno-long-long"
 
 { echo "$as_me:$LINENO: checking whether ln -s works" >&5
 echo $ECHO_N "checking whether ln -s works... $ECHO_C" >&6; }
@@ -5219,6 +5219,28 @@ fi
 rm -f conftest*
 
 
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+#include <features.h>
+#ifdef __GNU_LIBRARY__
+ #if (__GLIBC__ == 2 && __GLIBC_MINOR__ == 6)
+  GLIBC_26
+ #endif
+#endif
+
+_ACEOF
+if (eval "$ac_cpp conftest.$ac_ext") 2>&5 |
+  $EGREP "GLIBC_26" >/dev/null 2>&1; then
+  glibc="2.6"
+fi
+rm -f conftest*
+
+
 { echo "$as_me:$LINENO: checking the glibc version" >&5
 echo $ECHO_N "checking the glibc version... $ECHO_C" >&6; }
 
@@ -5267,11 +5289,22 @@ _ACEOF
 	DEFAULT_SUPP="glibc-2.5.supp ${DEFAULT_SUPP}"
 	;;
 
+     2.6)
+	{ echo "$as_me:$LINENO: result: 2.6 family" >&5
+echo "${ECHO_T}2.6 family" >&6; }
+
+cat >>confdefs.h <<\_ACEOF
+#define GLIBC_2_6 1
+_ACEOF
+
+	DEFAULT_SUPP="glibc-2.6.supp ${DEFAULT_SUPP}"
+	;;
+
      *)
 	{ echo "$as_me:$LINENO: result: unsupported version" >&5
 echo "${ECHO_T}unsupported version" >&6; }
-	{ { echo "$as_me:$LINENO: error: Valgrind requires glibc version 2.2 - 2.5" >&5
-echo "$as_me: error: Valgrind requires glibc version 2.2 - 2.5" >&2;}
+	{ { echo "$as_me:$LINENO: error: Valgrind requires glibc version 2.2 - 2.6" >&5
+echo "$as_me: error: Valgrind requires glibc version 2.2 - 2.6" >&2;}
    { (exit 1); exit 1; }; }
 	;;
 esac

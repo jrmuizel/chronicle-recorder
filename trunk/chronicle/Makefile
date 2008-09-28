@@ -1,3 +1,4 @@
+VALGRIND = valgrind-3.2.3
 BASE_OBJS = \
 	base/thread_util.o \
 	base/util.o \
@@ -23,13 +24,13 @@ QUERY_OBJS = \
 BINARIES = \
 	chronicle-indexer \
 	chronicle-query \
-	valgrind/chronicle/chronicle-x86-linux \
+	$(VALGRIND)/chronicle/chronicle-x86-linux \
 	$(NULL)
 VALGRIND_DEPS = \
-  valgrind/chronicle/main.c \
-  valgrind/chronicle/arch.h \
-  valgrind/chronicle/effects.h \
-  valgrind/chronicle/log_stream.h \
+  $(VALGRIND)/chronicle/main.c \
+  $(VALGRIND)/chronicle/arch.h \
+  $(VALGRIND)/chronicle/effects.h \
+  $(VALGRIND)/chronicle/log_stream.h \
   $(NULL)
 TESTS = \
   tests/basic-function-calls.check \
@@ -42,7 +43,7 @@ TESTS_OK = $(TESTS:.check=.ok)
 
 CFLAGS += -O2 -g -Wall
 CFLAGS += -D_GNU_SOURCE
-CFLAGS += -Ivalgrind/chronicle -Ibase -Iindexer -Iquery -I/usr/include/libelf
+CFLAGS += -I$(VALGRIND)/chronicle -Ibase -Iindexer -Iquery -I/usr/include/libelf
 
 LDFLAGS += -lz -lpthread -lelf
 
@@ -56,13 +57,13 @@ chronicle-indexer: $(BASE_OBJS) $(INDEXER_OBJS)
 chronicle-query: $(BASE_OBJS) $(QUERY_OBJS)
 	$(CC) $(LDFLAGS) -o chronicle-query $(BASE_OBJS) $(QUERY_OBJS)
 
-valgrind/chronicle/chronicle-x86-linux: $(VALGRIND_DEPS)
-	(cd valgrind; ./configure && make)
+$(VALGRIND)/chronicle/chronicle-x86-linux: $(VALGRIND_DEPS)
+	(cd $(VALGRIND); ./configure && make)
 
 clean:
 	rm -f $(BINARIES) $(BASE_OBJS) $(INDEXER_OBJS) $(QUERY_OBJS) \
 	      $(TESTS_BIN) $(TESTS_DB) $(TESTS_OK)
-	(cd valgrind; make clean)
+	(cd $(VALGRIND); make clean)
 
 distclean:
 	rm -f $(BINARIES) $(BASE_OBJS) $(INDEXER_OBJS) $(QUERY_OBJS) \
@@ -70,18 +71,19 @@ distclean:
 	rm -rf base/.cdt* base/.project base/.setttings
 	rm -rf query/.cdt* query/.project query/.setttings
 	rm -rf indexer/.cdt* indexer/.project indexer/.setttings
-	(cd valgrind; make distclean)
+	(cd $(VALGRIND); make distclean)
 
 # Test framework
 
 %.bin: %.c
 	$(CC) -O0 -g -Wall $*.c -o $*.bin
 
-%.db: %.bin chronicle-indexer valgrind/chronicle/chronicle-x86-linux
-	PATH=.:$(PATH) CHRONICLE_DB=$*.db VALGRIND_LIB=valgrind/.in_place valgrind/coregrind/valgrind --tool=chronicle $*.bin
+%.db: %.bin chronicle-indexer $(VALGRIND)/chronicle/chronicle-x86-linux
+	PATH=.:$(PATH) CHRONICLE_DB=$*.db VALGRIND_LIB=$(VALGRIND)/.in_place $(VALGRIND)/coregrind/valgrind --tool=chronicle $*.bin
 
 %.ok: %.check %.db chronicle-query
 	CHRONICLE_DB=$*.db $*.check
 	touch $*.ok
 
 check: $(TESTS_OK)
+

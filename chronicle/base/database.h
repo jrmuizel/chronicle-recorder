@@ -59,8 +59,8 @@
  * of the compressed data.
  */
 
-#include "../valgrind/chronicle/arch.h"
-#include "../valgrind/chronicle/effects.h"
+#include "arch.h"
+#include "effects.h"
 
 /**
  * Bump this 16-bit version identifier every time there is an incompatible

@@ -3,6 +3,8 @@
 
 = News =
 
+== 29/9/08: Updated to Valgrind 3.3.1 ==
+
 == 16/8/07: New features ==
 
 I added a "scanCount" command to the query engine to count the number of memory effects in a given memory and timestamp range.

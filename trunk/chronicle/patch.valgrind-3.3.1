@@ -1,0 +1,495 @@
+Index: valgrind-3.3.1/include/pub_tool_aspacemgr.h
+===================================================================
+--- valgrind-3.3.1/include/pub_tool_aspacemgr.h	(revision 56)
++++ valgrind-3.3.1/include/pub_tool_aspacemgr.h	(working copy)
+@@ -132,6 +132,25 @@
+    order to establish a suitably-sized buffer. */
+ extern Int VG_(am_get_segment_starts)( Addr* starts, Int nStarts );
+ 
++/* Interface to allow a tool to receive notifications of changes
++   to address space mappings.
++   
++   We call this callback every time the address space changes.
++   We pass False for 'contents_changed' if we know that the results
++   of reading from memory have not been changed by the address
++   space change.
++   We pass True for 'is_V_to_C_transfer' if this is a transfer of
++   ownership from valgrind to the client.
++   'start' and 'length' describe the region of the segment that is
++   being changed, relative to the segment start address.
++ */
++typedef void (* am_change_hook)(NSegment* seg,
++                                Addr start, Addr length,
++                                Bool contents_changed,
++                                Bool is_V_to_C_transfer,
++                                void* closure);
++extern void VG_(am_set_change_hook)(am_change_hook hook,
++                                    void* closure);
+ 
+ // See pub_core_aspacemgr.h for description.
+ extern NSegment const * VG_(am_find_nsegment) ( Addr a ); 
+@@ -151,6 +170,10 @@
+    accordingly.  This fails if the range isn't valid for valgrind. */
+ extern SysRes VG_(am_munmap_valgrind)( Addr start, SizeT length );
+ 
++// See pub_core_aspacemgr.h for description.
++/* Really just a wrapper around VG_(am_mmap_file_float_valgrind). */
++extern void* VG_(am_mmap_file)(SizeT size, UInt prot, Bool shared, Int fd, Off64T offset);
++
+ #endif   // __PUB_TOOL_ASPACEMGR_H
+ 
+ /*--------------------------------------------------------------------*/
+Index: valgrind-3.3.1/include/pub_tool_libcproc.h
+===================================================================
+--- valgrind-3.3.1/include/pub_tool_libcproc.h	(revision 56)
++++ valgrind-3.3.1/include/pub_tool_libcproc.h	(working copy)
+@@ -50,8 +50,10 @@
+    Important syscalls
+    ------------------------------------------------------------------ */
+ 
+-extern Int VG_(waitpid)( Int pid, Int *status, Int options );
+-extern Int VG_(system) ( Char* cmd );
++extern Int  VG_(waitpid)( Int pid, Int *status, Int options );
++extern Int  VG_(system) ( Char* cmd );
++extern Int  VG_(fork)   ( void);
++extern void VG_(execv)  ( Char* filename, Char** argv );
+ 
+ /* ---------------------------------------------------------------------
+    Resource limits
+@@ -80,6 +82,13 @@
+ // steps).
+ extern UInt VG_(read_millisecond_timer) ( void );
+ 
++/* ---------------------------------------------------------------------
++   atfork
++   ------------------------------------------------------------------ */
++
++typedef void (*vg_atfork_t)(ThreadId);
++extern void VG_(atfork_child)    ( vg_atfork_t child_action );
++
+ #endif   // __PUB_TOOL_LIBCPROC_H
+ 
+ /*--------------------------------------------------------------------*/
+Index: valgrind-3.3.1/include/pub_tool_libcfile.h
+===================================================================
+--- valgrind-3.3.1/include/pub_tool_libcfile.h	(revision 56)
++++ valgrind-3.3.1/include/pub_tool_libcfile.h	(working copy)
+@@ -47,6 +47,7 @@
+ extern SysRes VG_(stat)   ( Char* file_name, struct vki_stat* buf );
+ extern Int    VG_(fstat)  ( Int   fd,        struct vki_stat* buf );
+ extern SysRes VG_(dup)    ( Int oldfd );
++extern SysRes VG_(dup2)   ( Int oldfd, Int newfd );
+ extern Int    VG_(rename) ( Char* old_name, Char* new_name );
+ extern Int    VG_(unlink) ( Char* file_name );
+ 
+Index: valgrind-3.3.1/configure.in
+===================================================================
+--- valgrind-3.3.1/configure.in	(revision 56)
++++ valgrind-3.3.1/configure.in	(working copy)
+@@ -1013,6 +1013,9 @@
+    callgrind/callgrind_control
+    callgrind/tests/Makefile
+    callgrind/docs/Makefile
++   chronicle/Makefile
++   chronicle/tests/Makefile
++   chronicle/docs/Makefile
+    helgrind/Makefile
+    helgrind/tests/Makefile
+    helgrind/docs/Makefile
+Index: valgrind-3.3.1/Makefile.am
+===================================================================
+--- valgrind-3.3.1/Makefile.am	(revision 56)
++++ valgrind-3.3.1/Makefile.am	(working copy)
+@@ -6,6 +6,7 @@
+ TOOLS =		memcheck \
+ 		cachegrind \
+ 		callgrind \
++		chronicle \
+ 		massif \
+ 		lackey \
+ 		none \
+Index: valgrind-3.3.1/coregrind/pub_core_libcproc.h
+===================================================================
+--- valgrind-3.3.1/coregrind/pub_core_libcproc.h	(revision 56)
++++ valgrind-3.3.1/coregrind/pub_core_libcproc.h	(working copy)
+@@ -78,11 +78,8 @@
+ // misc
+ extern Int  VG_(getgroups)( Int size, UInt* list );
+ extern Int  VG_(ptrace)( Int request, Int pid, void *addr, void *data );
+-extern Int  VG_(fork)( void );
+ 
+ // atfork
+-typedef void (*vg_atfork_t)(ThreadId);
+-extern void VG_(atfork_child)    ( vg_atfork_t child_action );
+ extern void VG_(do_atfork_child) ( ThreadId tid );
+ 
+ #endif   // __PUB_CORE_LIBCPROC_H
+Index: valgrind-3.3.1/coregrind/m_mallocfree.c
+===================================================================
+--- valgrind-3.3.1/coregrind/m_mallocfree.c	(revision 56)
++++ valgrind-3.3.1/coregrind/m_mallocfree.c	(working copy)
+@@ -14,7 +14,7 @@
+    This program is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public License as
+    published by the Free Software Foundation; either version 2 of the
+-   License, or (at your option) any later version.
++   License, or (at your option) any later version./
+ 
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+@@ -1097,6 +1097,9 @@
+    Arena*      a;
+    void*       v;
+ 
++   if (req_pszB == 0)
++     return NULL;
++
+    ensure_mm_init(aid);
+    a = arenaId_to_ArenaP(aid);
+ 
+@@ -1512,6 +1515,15 @@
+ 
+    vg_assert(req_pszB < MAX_PSZB);
+ 
++   if (NULL == ptr) {
++      return VG_(arena_malloc)(aid,req_pszB);
++   }
++
++   if (req_pszB == 0) {
++      VG_(arena_free)(aid, ptr);
++      return NULL;
++   }
++
+    b = get_payload_block(a, ptr);
+    vg_assert(blockSane(a, b));
+ 
+Index: valgrind-3.3.1/coregrind/m_debuginfo/readelf.c
+===================================================================
+--- valgrind-3.3.1/coregrind/m_debuginfo/readelf.c	(revision 56)
++++ valgrind-3.3.1/coregrind/m_debuginfo/readelf.c	(working copy)
+@@ -751,7 +751,7 @@
+    *size = stat_buf.st_size;
+    
+    sres = VG_(am_mmap_file_float_valgrind)
+-             ( *size, VKI_PROT_READ, fd.res, 0 );
++             ( *size, VKI_PROT_READ, False, fd.res, 0 );
+ 
+    VG_(close)(fd.res);
+    
+@@ -848,7 +848,7 @@
+    }
+ 
+    sres = VG_(am_mmap_file_float_valgrind)
+-             ( n_oimage, VKI_PROT_READ, fd.res, 0 );
++             ( n_oimage, VKI_PROT_READ, False, fd.res, 0 );
+ 
+    VG_(close)(fd.res);
+ 
+Index: valgrind-3.3.1/coregrind/m_aspacemgr/aspacemgr-linux.c
+===================================================================
+--- valgrind-3.3.1/coregrind/m_aspacemgr/aspacemgr-linux.c	(revision 56)
++++ valgrind-3.3.1/coregrind/m_aspacemgr/aspacemgr-linux.c	(working copy)
+@@ -314,7 +314,11 @@
+ // Where aspacem will start looking for Valgrind space
+ static Addr aspacem_vStart = 0;
+ 
++/* Address space change notification hook */
++static am_change_hook change_hook;
++static void *change_hook_closure;
+ 
++
+ #define AM_SANITY_CHECK                                      \
+    do {                                                      \
+       if (VG_(clo_sanity_level >= 3))                        \
+@@ -1390,7 +1394,35 @@
+    /* Not that I'm overly paranoid or anything, definitely not :-) */
+ }
+ 
++/* Notify the tool (if requested) that the address space has changed. */
+ 
++static void do_change_callback(NSegment* segment,
++                               Addr start, Addr length,
++                               Bool contents_changed,
++                               Bool is_V_to_C_transfer)
++{
++   if (NULL == change_hook)
++      return;
++
++   change_hook(segment, start, length, contents_changed, is_V_to_C_transfer,
++               change_hook_closure);
++}
++
++static void do_change_all_callback(NSegment* segment,
++                                   Bool contents_changed,
++                                   Bool is_V_to_C_transfer)
++{
++   do_change_callback(segment, 0, segment->end - segment->start + 1,
++                      contents_changed, is_V_to_C_transfer);
++}
++
++void VG_(am_set_change_hook)(am_change_hook hook, void *closure)
++{
++   change_hook = hook;
++   change_hook_closure = closure;
++}
++
++
+ /* Add SEG to the collection, deleting/truncating any it overlaps.
+    This deals with all the tricky cases of splitting up segments as
+    needed. */
+@@ -1426,6 +1458,8 @@
+ 
+    nsegments[iLo] = *seg;
+ 
++   do_change_all_callback( seg, True, False );
++
+    (void)preen_nsegments();
+    if (0) VG_(am_show_nsegments)(0,"AFTER preen (add_segment)");
+ }
+@@ -1987,6 +2021,7 @@
+             nsegments[i].hasW = newW;
+             nsegments[i].hasX = newX;
+             aspacem_assert(sane_NSegment(&nsegments[i]));
++            do_change_all_callback(&nsegments[i], False, False);
+             break;
+          default:
+             break;
+@@ -2339,7 +2374,8 @@
+    segment array accordingly.  This is used by V for transiently
+    mapping in object files to read their debug info.  */
+ 
+-SysRes VG_(am_mmap_file_float_valgrind) ( SizeT length, UInt prot, 
++SysRes VG_(am_mmap_file_float_valgrind) ( SizeT length, UInt prot,
++                                          Bool shared,
+                                           Int fd, Off64T offset )
+ {
+    SysRes     sres;
+@@ -2349,6 +2385,7 @@
+    MapRequest req;
+    UWord      dev, ino;
+    UInt       mode;
++   UInt       flags;
+    HChar      buf[VKI_PATH_MAX];
+  
+    /* Not allowable. */
+@@ -2359,16 +2396,17 @@
+    req.rkind = MAny;
+    req.start = 0;
+    req.len   = length;
+-   advised = VG_(am_get_advisory)( &req, True/*client*/, &ok );
++   advised = VG_(am_get_advisory)( &req, False/*valgrind*/, &ok );
+    if (!ok)
+       return VG_(mk_SysRes_Error)( VKI_EINVAL );
+ 
+    /* We have been advised that the mapping is allowable at the
+       specified address.  So hand it off to the kernel, and propagate
+       any resulting failure immediately. */
++   flags = VKI_MAP_FIXED;
++   flags |= shared ? VKI_MAP_SHARED : VKI_MAP_PRIVATE;
+    sres = VG_(am_do_mmap_NO_NOTIFY)( 
+-             advised, length, prot, 
+-             VKI_MAP_FIXED|VKI_MAP_PRIVATE, 
++             advised, length, prot, flags, 
+              fd, offset 
+           );
+    if (sres.isError)
+@@ -2405,7 +2443,13 @@
+    return sres;
+ }
+ 
++void* VG_(am_mmap_file)(SizeT size, UInt prot, Bool shared, Int fd, Off64T offset)
++{
++   SysRes sres = VG_(am_mmap_file_float_valgrind)( size, prot, shared, fd, offset );
++   return sres.isError ? NULL : (void*)sres.res;
++}
+ 
++
+ /* --- --- munmap helper --- --- */
+ 
+ static 
+@@ -2516,6 +2560,7 @@
+       case SkAnonV: nsegments[iLo].kind = SkAnonC; break;
+       default: aspacem_assert(0); /* can't happen - guarded above */
+    }
++   do_change_all_callback(&nsegments[iLo], True, True);
+ 
+    preen_nsegments();
+    return True;
+@@ -2650,6 +2695,7 @@
+    aspacem_assert(VG_IS_PAGE_ALIGNED(delta<0 ? -delta : delta));
+ 
+    if (delta > 0) {
++      Addr start;
+ 
+       /* Extending the segment forwards. */
+       segR = segA+1;
+@@ -2660,10 +2706,11 @@
+           || delta + VKI_PAGE_SIZE 
+                 > (nsegments[segR].end - nsegments[segR].start + 1))
+         return False;
+-        
++
+       /* Extend the kernel's mapping. */
++      start = nsegments[segR].start;
+       sres = VG_(am_do_mmap_NO_NOTIFY)( 
+-                nsegments[segR].start, delta,
++                start, delta,
+                 prot,
+                 VKI_MAP_FIXED|VKI_MAP_PRIVATE|VKI_MAP_ANONYMOUS, 
+                 0, 0 
+@@ -2681,6 +2728,9 @@
+       nsegments[segA].end += delta;
+       aspacem_assert(nsegments[segR].start <= nsegments[segR].end);
+ 
++      do_change_callback(&nsegments[segA], start - nsegments[segA].start,
++                         delta, True, False);
++
+    } else {
+ 
+       /* Extending the segment backwards. */
+@@ -2716,6 +2766,8 @@
+       nsegments[segA].start -= delta;
+       aspacem_assert(nsegments[segR].start <= nsegments[segR].end);
+ 
++      do_change_callback(&nsegments[segA], 0, delta, True, False);
++
+    }
+ 
+    AM_SANITY_CHECK;
+Index: valgrind-3.3.1/coregrind/m_libcproc.c
+===================================================================
+--- valgrind-3.3.1/coregrind/m_libcproc.c	(revision 56)
++++ valgrind-3.3.1/coregrind/m_libcproc.c	(working copy)
+@@ -267,37 +267,38 @@
+    return newenv;
+ }
+ 
++void VG_(execv) ( Char* filename, Char** argv )
++{
++   Char** envp;
++   SysRes res;
++
++   /* restore the DATA rlimit for the child */
++   VG_(setrlimit)(VKI_RLIMIT_DATA, &VG_(client_rlimit_data));
++
++   envp = VG_(env_clone)(VG_(client_envp));
++   VG_(env_remove_valgrind_env_stuff)( envp );
++
++   res = VG_(do_syscall3)(__NR_execve,
++                          (UWord)filename, (UWord)argv, (UWord)envp);
++
++   VG_(printf)("EXEC failed, errno = %d\n", res.res);
++}
++
+ /* Return -1 if error, else 0.  NOTE does not indicate return code of
+    child! */
+ Int VG_(system) ( Char* cmd )
+ {
+-   Int    pid;
+-   SysRes res;
++   Int pid;
+    if (cmd == NULL)
+       return 1;
+-   res = VG_(do_syscall0)(__NR_fork);
+-   if (res.isError)
++   pid = VG_(fork)();
++   if (pid < 0)
+       return -1;
+-   pid = res.res;
+    if (pid == 0) {
+       /* child */
+-      static Char** envp = NULL;
+-      Char* argv[4];
++      Char* argv[4] = { "/bin/sh", "-c", cmd, 0 };
++      VG_(execv)(argv[0], argv);
+ 
+-      /* restore the DATA rlimit for the child */
+-      VG_(setrlimit)(VKI_RLIMIT_DATA, &VG_(client_rlimit_data));
+-
+-      envp = VG_(env_clone)(VG_(client_envp));
+-      VG_(env_remove_valgrind_env_stuff)( envp ); 
+-
+-      argv[0] = "/bin/sh";
+-      argv[1] = "-c";
+-      argv[2] = cmd;
+-      argv[3] = 0;
+-
+-      (void)VG_(do_syscall3)(__NR_execve, 
+-                             (UWord)"/bin/sh", (UWord)argv, (UWord)envp);
+-
+       /* If we're still alive here, execve failed. */
+       VG_(exit)(1);
+    } else {
+@@ -553,27 +554,30 @@
+    return (now - base) / 1000;
+ }
+ 
+-/* ---------------------------------------------------------------------
+-   A trivial atfork() facility for Valgrind's internal use
+-   ------------------------------------------------------------------ */
++#define MAX_ATFORK_CHILD 4
++static vg_atfork_t atfork_child_list[MAX_ATFORK_CHILD];
+ 
+-// Trivial because it only supports a single post-fork child action, which
+-// is all we need.
+-
+-static vg_atfork_t atfork_child = NULL;
+-
+ void VG_(atfork_child)(vg_atfork_t child)
+ {
+-   if (NULL != atfork_child)
+-      VG_(core_panic)("More than one atfork_child handler requested");
++   Int i;
++   for (i = 0; i < MAX_ATFORK_CHILD; ++i) {
++      if (NULL == atfork_child_list[i]) {
++         atfork_child_list[i] = child;
++         return;
++      }
++   }
+ 
+-   atfork_child = child;
++   VG_(core_panic)("Too many atfork_child handlers requested");
+ }
+ 
+ void VG_(do_atfork_child)(ThreadId tid)
+ {
+-   if (NULL != atfork_child)
+-      (*atfork_child)(tid);
++   Int i;
++   for (i = 0; i < MAX_ATFORK_CHILD; ++i) {
++      if (NULL != atfork_child_list[i]) {
++        atfork_child_list[i](tid);
++      }
++   }
+ }
+ 
+ /*--------------------------------------------------------------------*/
+Index: valgrind-3.3.1/coregrind/m_libcfile.c
+===================================================================
+--- valgrind-3.3.1/coregrind/m_libcfile.c	(revision 56)
++++ valgrind-3.3.1/coregrind/m_libcfile.c	(working copy)
+@@ -198,6 +198,11 @@
+    return VG_(do_syscall1)(__NR_dup, oldfd);
+ }
+ 
++SysRes VG_(dup2) ( Int oldfd, Int newfd )
++{
++   return VG_(do_syscall2)(__NR_dup2, oldfd, newfd);
++}
++
+ /* Returns -1 on error. */
+ Int VG_(fcntl) ( Int fd, Int cmd, Int arg )
+ {
+Index: valgrind-3.3.1/coregrind/pub_core_aspacemgr.h
+===================================================================
+--- valgrind-3.3.1/coregrind/pub_core_aspacemgr.h	(revision 56)
++++ valgrind-3.3.1/coregrind/pub_core_aspacemgr.h	(working copy)
+@@ -284,7 +284,7 @@
+    segment array accordingly.  This is used by V for transiently
+    mapping in object files to read their debug info.  */
+ extern SysRes VG_(am_mmap_file_float_valgrind)
+-   ( SizeT length, UInt prot, Int fd, Off64T offset );
++   ( SizeT length, UInt prot, Bool shared, Int fd, Off64T offset );
+ 
+ /* Unmap the given address range and update the segment array
+    accordingly.  This fails if the range isn't valid for the client.

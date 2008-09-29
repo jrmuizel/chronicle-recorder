@@ -1,28 +1,24 @@
 Getting Started
 ===============
 
-Run "make all check" to build Chronicle and Valgrind and run a simple
-sanity check that everything is working.
+cd valgrind-3.3.1
+./configure && make install
+CHRONICLE_DB=/tmp/ls.db valgrind --tool=chronicle ls
+chronicle-query --db /tmp/ls.db
 
 Directory Structure
 ===================
 
-docs/
-    Documentation files
-valgrind/
-    Patched Valgrind including 'chronicle' tool
-indexer/
-    Helper process invoked by Valgrind tool to compress and index trace
-    data
-query/
-    Query agent accepting JSON queries and processing them from the
-    trace database
-base/
-    Core code shared by indexer and query
-tests/
-    Automated tests
-scripts/
-    Useful scripts
+valgrind-3.3.1/  Valgrind sources (patched)
+    chronicle/   Chronicle Valgrind plugin
+        base/    Core code shared by indexer and query helper apps
+        indexer/ Helper process invoked by Valgrind tool to compress and index trace
+                 data
+        query/   Query agent helper process accepting JSON queries and processing them from the
+                 trace database
+        docs/    Documentation files
+        tests/   Automated tests
+        scripts/ Useful scripts
 
 Licensing
 =========
@@ -42,3 +38,4 @@ debugger front ends can use any license.
 Contact
 =======
 robert@ocallahan.org
+

@@ -21,7 +21,7 @@ Then to run the Chronicle tests,
 make check
 }}}
 
-To apply Chronicle to your own program,
+To apply Chronicle to your own program, ensure that $HOME/bin is in your $PATH. Then
 {{{
 CHRONICLE_DB=/tmp/ls.db valgrind --tool=chronicle ls
 }}}

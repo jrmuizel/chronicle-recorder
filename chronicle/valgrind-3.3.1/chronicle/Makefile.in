@@ -14,13 +14,39 @@
 
 @SET_MAKE@
 
+# What the first for loop does: it copies a bunch of files which names
+# of the form wurble-arch-os to $prefix/lib/valgrind/arch-os/wurble.
+# There is some complexity in the sed mangling because wurble may itself
+# contain a dash, which must be ignored.  For example we want
+#    exp-omega-x86-linux
+# to be installed in 
+#    $prefix/lib/valgrind/x86-linux/exp-omega
+# and not in
+#    $prefix/lib/valgrind/omega-x86-linux/exp
+# or similarly mutant place.
+#
+# Note there is identical sed magic in Makefile.tool-inplace.am.
+
+# What the second for loop does: it copies libcoregrind.a and libvex.a
+# into the correct (target-specific) lib dirs at install time.
+# $(noinst_LIBRARIES) will look like this:
+#    libcoregrind_x86_linux.a libreplacemalloc_toolpreload_x86_linux.a
+#    libcoregrind_amd64_linux.a libreplacemalloc_toolpreload_amd64_linux.a
+# The 'if expr' filters out all but the libcoregrind_ ones.
+# pD and pU are the (arch,os) target pairs separated by a dash (pD) or
+# an underscore (pU) respectively, eg amd64-linux (pD) and amd64_linux (pU).
+# It then copies libcoregrind.a and libvex.a to the right places.
+
+# For a description of what these magic sed commands do, see comments
+# in Makefile.install.am (which has identical magic)
+
 srcdir = @srcdir@
 top_srcdir = @top_srcdir@
 VPATH = @srcdir@
 pkgdatadir = $(datadir)/@PACKAGE@
 pkglibdir = $(libdir)/@PACKAGE@
 pkgincludedir = $(includedir)/@PACKAGE@
-top_builddir = ../..
+top_builddir = ..
 am__cd = CDPATH="$${ZSH_VERSION+.}$(PATH_SEPARATOR)" && cd
 INSTALL = @INSTALL@
 install_sh_DATA = $(install_sh) -c -m 644
@@ -37,14 +63,16 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
-	$(top_srcdir)/Makefile.flags.am
-@VGP_X86_LINUX_TRUE@am__append_1 = x86
-@VGP_AMD64_LINUX_TRUE@am__append_2 = amd64
-@VGP_PPC32_LINUX_TRUE@am__append_3 = ppc32
-@VGP_PPC64_LINUX_TRUE@am__append_4 = ppc64
-check_PROGRAMS = chdir$(EXEEXT) clreq$(EXEEXT) dlclose$(EXEEXT) \
-	myprint.so$(EXEEXT) wrap5$(EXEEXT)
-subdir = cachegrind/tests
+	$(top_srcdir)/Makefile.all.am $(top_srcdir)/Makefile.flags.am \
+	$(top_srcdir)/Makefile.install.am \
+	$(top_srcdir)/Makefile.tool-flags.am \
+	$(top_srcdir)/Makefile.tool-inplace.am \
+	$(top_srcdir)/Makefile.tool.am
+noinst_PROGRAMS = $(am__EXEEXT_1) $(am__EXEEXT_2) $(am__EXEEXT_3)
+@VGP_X86_LINUX_TRUE@am__append_1 = chronicle-x86-linux
+@VGP_AMD64_LINUX_TRUE@am__append_2 = chronicle-amd64-linux
+@VGP_PPC32_LINUX_TRUE@am__append_3 = chronicle-ppc32-linux
+subdir = chronicle
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.in
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
@@ -52,22 +80,32 @@ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
-chdir_SOURCES = chdir.c
-chdir_OBJECTS = chdir.$(OBJEXT)
-chdir_LDADD = $(LDADD)
-clreq_SOURCES = clreq.c
-clreq_OBJECTS = clreq.$(OBJEXT)
-clreq_LDADD = $(LDADD)
-dlclose_SOURCES = dlclose.c
-dlclose_OBJECTS = dlclose.$(OBJEXT)
-dlclose_DEPENDENCIES =
-am_myprint_so_OBJECTS = myprint_so-myprint.$(OBJEXT)
-myprint_so_OBJECTS = $(am_myprint_so_OBJECTS)
-myprint_so_LDADD = $(LDADD)
-wrap5_SOURCES = wrap5.c
-wrap5_OBJECTS = wrap5.$(OBJEXT)
-wrap5_LDADD = $(LDADD)
-SCRIPTS = $(noinst_SCRIPTS)
+@VGP_X86_LINUX_TRUE@am__EXEEXT_1 = chronicle-x86-linux$(EXEEXT)
+@VGP_AMD64_LINUX_TRUE@am__EXEEXT_2 = chronicle-amd64-linux$(EXEEXT)
+@VGP_PPC32_LINUX_TRUE@am__EXEEXT_3 = chronicle-ppc32-linux$(EXEEXT)
+PROGRAMS = $(noinst_PROGRAMS)
+am__objects_1 = chronicle_amd64_linux-main.$(OBJEXT)
+am_chronicle_amd64_linux_OBJECTS = $(am__objects_1)
+chronicle_amd64_linux_OBJECTS = $(am_chronicle_amd64_linux_OBJECTS)
+am__DEPENDENCIES_1 =  \
+	$(top_builddir)/coregrind/libcoregrind_amd64_linux.a \
+	@VEX_DIR@/libvex_amd64_linux.a
+am__DEPENDENCIES_2 =
+am__DEPENDENCIES_3 = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_2)
+am__objects_2 = chronicle_ppc32_linux-main.$(OBJEXT)
+am_chronicle_ppc32_linux_OBJECTS = $(am__objects_2)
+chronicle_ppc32_linux_OBJECTS = $(am_chronicle_ppc32_linux_OBJECTS)
+am__DEPENDENCIES_4 =  \
+	$(top_builddir)/coregrind/libcoregrind_ppc32_linux.a \
+	@VEX_DIR@/libvex_ppc32_linux.a
+am__DEPENDENCIES_5 = $(am__DEPENDENCIES_4) $(am__DEPENDENCIES_2)
+am__objects_3 = chronicle_x86_linux-main.$(OBJEXT)
+am_chronicle_x86_linux_OBJECTS = $(am__objects_3)
+chronicle_x86_linux_OBJECTS = $(am_chronicle_x86_linux_OBJECTS)
+am__DEPENDENCIES_6 =  \
+	$(top_builddir)/coregrind/libcoregrind_x86_linux.a \
+	@VEX_DIR@/libvex_x86_linux.a
+am__DEPENDENCIES_7 = $(am__DEPENDENCIES_6) $(am__DEPENDENCIES_2)
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -75,8 +113,12 @@ COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
-SOURCES = chdir.c clreq.c dlclose.c $(myprint_so_SOURCES) wrap5.c
-DIST_SOURCES = chdir.c clreq.c dlclose.c $(myprint_so_SOURCES) wrap5.c
+SOURCES = $(chronicle_amd64_linux_SOURCES) \
+	$(chronicle_ppc32_linux_SOURCES) \
+	$(chronicle_x86_linux_SOURCES)
+DIST_SOURCES = $(chronicle_amd64_linux_SOURCES) \
+	$(chronicle_ppc32_linux_SOURCES) \
+	$(chronicle_x86_linux_SOURCES)
 RECURSIVE_TARGETS = all-recursive check-recursive dvi-recursive \
 	html-recursive info-recursive install-data-recursive \
 	install-exec-recursive install-info-recursive \
@@ -85,6 +127,7 @@ RECURSIVE_TARGETS = all-recursive check-recursive dvi-recursive \
 	uninstall-recursive
 ETAGS = etags
 CTAGS = ctags
+DIST_SUBDIRS = $(SUBDIRS)
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
 AMDEP_FALSE = @AMDEP_FALSE@
@@ -231,6 +274,45 @@ sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
+SUBDIRS = . tests docs
+valdir = $(libdir)/valgrind
+inplacedir = $(top_builddir)/.in_place
+add_includes_x86_linux = -I$(top_srcdir)/include \
+		-I@VEX_DIR@/pub \
+		-DVGA_x86=1 \
+		-DVGO_linux=1 \
+		-DVGP_x86_linux=1
+
+add_includes_amd64_linux = -I$(top_srcdir)/include \
+		-I@VEX_DIR@/pub \
+		-DVGA_amd64=1 \
+		-DVGO_linux=1 \
+		-DVGP_amd64_linux=1
+
+add_includes_ppc32_linux = -I$(top_srcdir)/include \
+		-I@VEX_DIR@/pub \
+		-DVGA_ppc32=1 \
+		-DVGO_linux=1 \
+		-DVGP_ppc32_linux=1
+
+add_includes_ppc64_linux = -I$(top_srcdir)/include \
+		-I@VEX_DIR@/pub \
+		-DVGA_ppc64=1 \
+		-DVGO_linux=1 \
+		-DVGP_ppc64_linux=1
+
+add_includes_ppc32_aix5 = -I$(top_srcdir)/include \
+		-I@VEX_DIR@/pub \
+		-DVGA_ppc32=1 \
+		-DVGO_aix5=1 \
+		-DVGP_ppc32_aix5=1
+
+add_includes_ppc64_aix5 = -I$(top_srcdir)/include \
+		-I@VEX_DIR@/pub \
+		-DVGA_ppc64=1 \
+		-DVGO_aix5=1 \
+		-DVGP_ppc64_aix5=1
+
 
 # Baseline flags for all compilations.  Aim here is to maximise
 # performance and get whatever useful warnings we can out of gcc.
@@ -300,32 +382,132 @@ PRELOAD_LDFLAGS_PPC32_LINUX = $(PRELOAD_LDFLAGS_COMMON_LINUX) @FLAG_M32@
 PRELOAD_LDFLAGS_PPC64_LINUX = $(PRELOAD_LDFLAGS_COMMON_LINUX) @FLAG_M64@
 PRELOAD_LDFLAGS_PPC32_AIX5 = $(PRELOAD_LDFLAGS_COMMON_AIX5)  @FLAG_MAIX32@
 PRELOAD_LDFLAGS_PPC64_AIX5 = $(PRELOAD_LDFLAGS_COMMON_AIX5)  @FLAG_MAIX64@
+LIBREPLACEMALLOC_X86_LINUX = \
+	$(top_builddir)/coregrind/libreplacemalloc_toolpreload_x86_linux.a
 
-# For AM_FLAG_M3264_PRI
-SUBDIRS = . $(am__append_1) $(am__append_2) $(am__append_3) \
-	$(am__append_4)
-DIST_SUBDIRS = ${VG_ARCH_ALL} .
-noinst_SCRIPTS = filter_stderr filter_cachesim_discards
-EXTRA_DIST = $(noinst_SCRIPTS) \
-	chdir.vgtest chdir.stderr.exp \
-	clreq.vgtest clreq.stderr.exp \
-	dlclose.vgtest dlclose.stderr.exp dlclose.stdout.exp \
-	wrap5.vgtest wrap5.stderr.exp wrap5.stdout.exp
+LIBREPLACEMALLOC_AMD64_LINUX = \
+	$(top_builddir)/coregrind/libreplacemalloc_toolpreload_amd64_linux.a
 
-AM_CPPFLAGS = -I$(top_srcdir)/include
-AM_CFLAGS = $(WERROR) -Winline -Wall -Wshadow -g $(AM_FLAG_M3264_PRI)
+LIBREPLACEMALLOC_PPC32_LINUX = \
+	$(top_builddir)/coregrind/libreplacemalloc_toolpreload_ppc32_linux.a
 
-# C ones
-dlclose_LDADD = -ldl
-myprint_so_SOURCES = myprint.c
-myprint_so_LDFLAGS = $(AM_FLAG_M3264_PRI) -shared -fPIC
-myprint_so_CFLAGS = $(AM_FLAG_M3264_PRI) -fPIC
-@VGP_PPC32_AIX5_TRUE@@VGP_PPC64_AIX5_FALSE@wrap5_LDFLAGS = $(AM_FLAG_M3264_PRI) -Wl,-G -Wl,-bnogc
+LIBREPLACEMALLOC_PPC64_LINUX = \
+	$(top_builddir)/coregrind/libreplacemalloc_toolpreload_ppc64_linux.a
+
+LIBREPLACEMALLOC_PPC32_AIX5 = \
+	$(top_builddir)/coregrind/libreplacemalloc_toolpreload_ppc32_aix5.a
+
+LIBREPLACEMALLOC_PPC64_AIX5 = \
+	$(top_builddir)/coregrind/libreplacemalloc_toolpreload_ppc64_aix5.a
+
+COREGRIND_LIBS_X86_LINUX = \
+	$(top_builddir)/coregrind/libcoregrind_x86_linux.a \
+	@VEX_DIR@/libvex_x86_linux.a
+
+COREGRIND_LIBS_AMD64_LINUX = \
+	$(top_builddir)/coregrind/libcoregrind_amd64_linux.a \
+	@VEX_DIR@/libvex_amd64_linux.a
+
+COREGRIND_LIBS_PPC32_LINUX = \
+	$(top_builddir)/coregrind/libcoregrind_ppc32_linux.a \
+	@VEX_DIR@/libvex_ppc32_linux.a
+
+COREGRIND_LIBS_PPC64_LINUX = \
+	$(top_builddir)/coregrind/libcoregrind_ppc64_linux.a \
+	@VEX_DIR@/libvex_ppc64_linux.a
+
+COREGRIND_LIBS_PPC32_AIX5 = \
+	$(top_builddir)/coregrind/libcoregrind_ppc32_aix5.a \
+	@VEX_DIR@/libvex_ppc32_aix5.a
+
+COREGRIND_LIBS_PPC64_AIX5 = \
+	$(top_builddir)/coregrind/libcoregrind_ppc64_aix5.a \
+	@VEX_DIR@/libvex_ppc64_aix5.a
+
+TOOL_LDADD_COMMON = -lgcc
+TOOL_LDFLAGS_COMMON_LINUX = -static \
+	-Wl,-defsym,valt_load_address=@VALT_LOAD_ADDRESS@ \
+	-nodefaultlibs -nostartfiles -u _start
+
+TOOL_LDFLAGS_COMMON_AIX5 = -static -Wl,-e_start_valgrind
+TOOL_LDADD_X86_LINUX = $(COREGRIND_LIBS_X86_LINUX) $(TOOL_LDADD_COMMON)
+TOOL_LDFLAGS_X86_LINUX = \
+	$(TOOL_LDFLAGS_COMMON_LINUX) @FLAG_M32@ \
+	-Wl,-T,$(top_builddir)/valt_load_address_x86_linux.lds
+
+TOOL_LDADD_AMD64_LINUX = $(COREGRIND_LIBS_AMD64_LINUX) $(TOOL_LDADD_COMMON)
+TOOL_LDFLAGS_AMD64_LINUX = \
+	$(TOOL_LDFLAGS_COMMON_LINUX) @FLAG_M64@ \
+	-Wl,-T,$(top_builddir)/valt_load_address_amd64_linux.lds
+
+TOOL_LDADD_PPC32_LINUX = $(COREGRIND_LIBS_PPC32_LINUX) $(TOOL_LDADD_COMMON)
+TOOL_LDFLAGS_PPC32_LINUX = \
+	$(TOOL_LDFLAGS_COMMON_LINUX) @FLAG_M32@ \
+	-Wl,-T,$(top_builddir)/valt_load_address_ppc32_linux.lds
+
+TOOL_LDADD_PPC64_LINUX = $(COREGRIND_LIBS_PPC64_LINUX) $(TOOL_LDADD_COMMON)
+TOOL_LDFLAGS_PPC64_LINUX = \
+	$(TOOL_LDFLAGS_COMMON_LINUX) @FLAG_M64@ \
+	-Wl,-T,$(top_builddir)/valt_load_address_ppc64_linux.lds
+
+TOOL_LDADD_PPC32_AIX5 = $(COREGRIND_LIBS_PPC32_AIX5) $(TOOL_LDADD_COMMON)
+TOOL_LDFLAGS_PPC32_AIX5 = \
+	$(TOOL_LDFLAGS_COMMON_AIX5) @FLAG_MAIX32@
+
+TOOL_LDADD_PPC64_AIX5 = $(COREGRIND_LIBS_PPC64_AIX5) $(TOOL_LDADD_COMMON)
+TOOL_LDFLAGS_PPC64_AIX5 = \
+	$(TOOL_LDFLAGS_COMMON_AIX5) @FLAG_MAIX64@ -Wl,-bbigtoc
+
+LIBREPLACEMALLOC_LDFLAGS_X86_LINUX = \
+	-Wl,--whole-archive \
+	$(LIBREPLACEMALLOC_X86_LINUX) \
+	-Wl,--no-whole-archive
+
+LIBREPLACEMALLOC_LDFLAGS_AMD64_LINUX = \
+	-Wl,--whole-archive \
+	$(LIBREPLACEMALLOC_AMD64_LINUX) \
+	-Wl,--no-whole-archive
+
+LIBREPLACEMALLOC_LDFLAGS_PPC32_LINUX = \
+	-Wl,--whole-archive \
+	$(LIBREPLACEMALLOC_PPC32_LINUX) \
+	-Wl,--no-whole-archive
+
+LIBREPLACEMALLOC_LDFLAGS_PPC64_LINUX = \
+	-Wl,--whole-archive \
+	$(LIBREPLACEMALLOC_PPC64_LINUX) \
+	-Wl,--no-whole-archive
+
+LIBREPLACEMALLOC_LDFLAGS_PPC32_AIX5 = \
+	$(LIBREPLACEMALLOC_PPC32_AIX5)
+
+LIBREPLACEMALLOC_LDFLAGS_PPC64_AIX5 = \
+	$(LIBREPLACEMALLOC_PPC64_AIX5)
+
+SOURCES_COMMON = main.c
+chronicle_x86_linux_SOURCES = $(SOURCES_COMMON)
+chronicle_x86_linux_CPPFLAGS = $(AM_CPPFLAGS_X86_LINUX)
+chronicle_x86_linux_CFLAGS = $(AM_CFLAGS_X86_LINUX)
+chronicle_x86_linux_DEPENDENCIES = $(COREGRIND_LIBS_X86_LINUX)
+chronicle_x86_linux_LDADD = $(TOOL_LDADD_X86_LINUX)
+chronicle_x86_linux_LDFLAGS = $(TOOL_LDFLAGS_X86_LINUX)
+chronicle_amd64_linux_SOURCES = $(SOURCES_COMMON)
+chronicle_amd64_linux_CPPFLAGS = $(AM_CPPFLAGS_AMD64_LINUX)
+chronicle_amd64_linux_CFLAGS = $(AM_CFLAGS_AMD64_LINUX)
+chronicle_amd64_linux_DEPENDENCIES = $(COREGRIND_LIBS_AMD64_LINUX)
+chronicle_amd64_linux_LDADD = $(TOOL_LDADD_AMD64_LINUX)
+chronicle_amd64_linux_LDFLAGS = $(TOOL_LDFLAGS_AMD64_LINUX)
+chronicle_ppc32_linux_SOURCES = $(SOURCES_COMMON)
+chronicle_ppc32_linux_CPPFLAGS = $(AM_CPPFLAGS_PPC32_LINUX)
+chronicle_ppc32_linux_CFLAGS = $(AM_CFLAGS_PPC32_LINUX)
+chronicle_ppc32_linux_DEPENDENCIES = $(COREGRIND_LIBS_PPC32_LINUX)
+chronicle_ppc32_linux_LDADD = $(TOOL_LDADD_PPC32_LINUX)
+chronicle_ppc32_linux_LDFLAGS = $(TOOL_LDFLAGS_PPC32_LINUX)
 all: all-recursive
 
 .SUFFIXES:
 .SUFFIXES: .c .o .obj
-$(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am $(top_srcdir)/Makefile.flags.am $(am__configure_deps)
+$(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am $(top_srcdir)/Makefile.tool.am $(top_srcdir)/Makefile.all.am $(top_srcdir)/Makefile.install.am $(top_srcdir)/Makefile.tool-flags.am $(top_srcdir)/Makefile.flags.am $(top_srcdir)/Makefile.tool-inplace.am $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
 	    *$$dep*) \
@@ -334,9 +516,9 @@ $(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am $(top_srcdir
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu  cachegrind/tests/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu  chronicle/Makefile'; \
 	cd $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu  cachegrind/tests/Makefile
+	  $(AUTOMAKE) --gnu  chronicle/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
@@ -355,23 +537,17 @@ $(top_srcdir)/configure: @MAINTAINER_MODE_TRUE@ $(am__configure_deps)
 $(ACLOCAL_M4): @MAINTAINER_MODE_TRUE@ $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 
-clean-checkPROGRAMS:
-	-test -z "$(check_PROGRAMS)" || rm -f $(check_PROGRAMS)
-chdir$(EXEEXT): $(chdir_OBJECTS) $(chdir_DEPENDENCIES) 
-	@rm -f chdir$(EXEEXT)
-	$(LINK) $(chdir_LDFLAGS) $(chdir_OBJECTS) $(chdir_LDADD) $(LIBS)
-clreq$(EXEEXT): $(clreq_OBJECTS) $(clreq_DEPENDENCIES) 
-	@rm -f clreq$(EXEEXT)
-	$(LINK) $(clreq_LDFLAGS) $(clreq_OBJECTS) $(clreq_LDADD) $(LIBS)
-dlclose$(EXEEXT): $(dlclose_OBJECTS) $(dlclose_DEPENDENCIES) 
-	@rm -f dlclose$(EXEEXT)
-	$(LINK) $(dlclose_LDFLAGS) $(dlclose_OBJECTS) $(dlclose_LDADD) $(LIBS)
-myprint.so$(EXEEXT): $(myprint_so_OBJECTS) $(myprint_so_DEPENDENCIES) 
-	@rm -f myprint.so$(EXEEXT)
-	$(LINK) $(myprint_so_LDFLAGS) $(myprint_so_OBJECTS) $(myprint_so_LDADD) $(LIBS)
-wrap5$(EXEEXT): $(wrap5_OBJECTS) $(wrap5_DEPENDENCIES) 
-	@rm -f wrap5$(EXEEXT)
-	$(LINK) $(wrap5_LDFLAGS) $(wrap5_OBJECTS) $(wrap5_LDADD) $(LIBS)
+clean-noinstPROGRAMS:
+	-test -z "$(noinst_PROGRAMS)" || rm -f $(noinst_PROGRAMS)
+chronicle-amd64-linux$(EXEEXT): $(chronicle_amd64_linux_OBJECTS) $(chronicle_amd64_linux_DEPENDENCIES) 
+	@rm -f chronicle-amd64-linux$(EXEEXT)
+	$(LINK) $(chronicle_amd64_linux_LDFLAGS) $(chronicle_amd64_linux_OBJECTS) $(chronicle_amd64_linux_LDADD) $(LIBS)
+chronicle-ppc32-linux$(EXEEXT): $(chronicle_ppc32_linux_OBJECTS) $(chronicle_ppc32_linux_DEPENDENCIES) 
+	@rm -f chronicle-ppc32-linux$(EXEEXT)
+	$(LINK) $(chronicle_ppc32_linux_LDFLAGS) $(chronicle_ppc32_linux_OBJECTS) $(chronicle_ppc32_linux_LDADD) $(LIBS)
+chronicle-x86-linux$(EXEEXT): $(chronicle_x86_linux_OBJECTS) $(chronicle_x86_linux_DEPENDENCIES) 
+	@rm -f chronicle-x86-linux$(EXEEXT)
+	$(LINK) $(chronicle_x86_linux_LDFLAGS) $(chronicle_x86_linux_OBJECTS) $(chronicle_x86_linux_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -379,11 +555,9 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/chdir.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/clreq.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dlclose.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/myprint_so-myprint.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/wrap5.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/chronicle_amd64_linux-main.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/chronicle_ppc32_linux-main.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/chronicle_x86_linux-main.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	if $(COMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" -c -o $@ $<; \
@@ -399,19 +573,47 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(COMPILE) -c `$(CYGPATH_W) '$<'`
 
-myprint_so-myprint.o: myprint.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(myprint_so_CFLAGS) $(CFLAGS) -MT myprint_so-myprint.o -MD -MP -MF "$(DEPDIR)/myprint_so-myprint.Tpo" -c -o myprint_so-myprint.o `test -f 'myprint.c' || echo '$(srcdir)/'`myprint.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/myprint_so-myprint.Tpo" "$(DEPDIR)/myprint_so-myprint.Po"; else rm -f "$(DEPDIR)/myprint_so-myprint.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='myprint.c' object='myprint_so-myprint.o' libtool=no @AMDEPBACKSLASH@
+chronicle_amd64_linux-main.o: main.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(chronicle_amd64_linux_CPPFLAGS) $(CPPFLAGS) $(chronicle_amd64_linux_CFLAGS) $(CFLAGS) -MT chronicle_amd64_linux-main.o -MD -MP -MF "$(DEPDIR)/chronicle_amd64_linux-main.Tpo" -c -o chronicle_amd64_linux-main.o `test -f 'main.c' || echo '$(srcdir)/'`main.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/chronicle_amd64_linux-main.Tpo" "$(DEPDIR)/chronicle_amd64_linux-main.Po"; else rm -f "$(DEPDIR)/chronicle_amd64_linux-main.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='main.c' object='chronicle_amd64_linux-main.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(myprint_so_CFLAGS) $(CFLAGS) -c -o myprint_so-myprint.o `test -f 'myprint.c' || echo '$(srcdir)/'`myprint.c
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(chronicle_amd64_linux_CPPFLAGS) $(CPPFLAGS) $(chronicle_amd64_linux_CFLAGS) $(CFLAGS) -c -o chronicle_amd64_linux-main.o `test -f 'main.c' || echo '$(srcdir)/'`main.c
 
-myprint_so-myprint.obj: myprint.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(myprint_so_CFLAGS) $(CFLAGS) -MT myprint_so-myprint.obj -MD -MP -MF "$(DEPDIR)/myprint_so-myprint.Tpo" -c -o myprint_so-myprint.obj `if test -f 'myprint.c'; then $(CYGPATH_W) 'myprint.c'; else $(CYGPATH_W) '$(srcdir)/myprint.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/myprint_so-myprint.Tpo" "$(DEPDIR)/myprint_so-myprint.Po"; else rm -f "$(DEPDIR)/myprint_so-myprint.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='myprint.c' object='myprint_so-myprint.obj' libtool=no @AMDEPBACKSLASH@
+chronicle_amd64_linux-main.obj: main.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(chronicle_amd64_linux_CPPFLAGS) $(CPPFLAGS) $(chronicle_amd64_linux_CFLAGS) $(CFLAGS) -MT chronicle_amd64_linux-main.obj -MD -MP -MF "$(DEPDIR)/chronicle_amd64_linux-main.Tpo" -c -o chronicle_amd64_linux-main.obj `if test -f 'main.c'; then $(CYGPATH_W) 'main.c'; else $(CYGPATH_W) '$(srcdir)/main.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/chronicle_amd64_linux-main.Tpo" "$(DEPDIR)/chronicle_amd64_linux-main.Po"; else rm -f "$(DEPDIR)/chronicle_amd64_linux-main.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='main.c' object='chronicle_amd64_linux-main.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(myprint_so_CFLAGS) $(CFLAGS) -c -o myprint_so-myprint.obj `if test -f 'myprint.c'; then $(CYGPATH_W) 'myprint.c'; else $(CYGPATH_W) '$(srcdir)/myprint.c'; fi`
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(chronicle_amd64_linux_CPPFLAGS) $(CPPFLAGS) $(chronicle_amd64_linux_CFLAGS) $(CFLAGS) -c -o chronicle_amd64_linux-main.obj `if test -f 'main.c'; then $(CYGPATH_W) 'main.c'; else $(CYGPATH_W) '$(srcdir)/main.c'; fi`
+
+chronicle_ppc32_linux-main.o: main.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(chronicle_ppc32_linux_CPPFLAGS) $(CPPFLAGS) $(chronicle_ppc32_linux_CFLAGS) $(CFLAGS) -MT chronicle_ppc32_linux-main.o -MD -MP -MF "$(DEPDIR)/chronicle_ppc32_linux-main.Tpo" -c -o chronicle_ppc32_linux-main.o `test -f 'main.c' || echo '$(srcdir)/'`main.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/chronicle_ppc32_linux-main.Tpo" "$(DEPDIR)/chronicle_ppc32_linux-main.Po"; else rm -f "$(DEPDIR)/chronicle_ppc32_linux-main.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='main.c' object='chronicle_ppc32_linux-main.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(chronicle_ppc32_linux_CPPFLAGS) $(CPPFLAGS) $(chronicle_ppc32_linux_CFLAGS) $(CFLAGS) -c -o chronicle_ppc32_linux-main.o `test -f 'main.c' || echo '$(srcdir)/'`main.c
+
+chronicle_ppc32_linux-main.obj: main.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(chronicle_ppc32_linux_CPPFLAGS) $(CPPFLAGS) $(chronicle_ppc32_linux_CFLAGS) $(CFLAGS) -MT chronicle_ppc32_linux-main.obj -MD -MP -MF "$(DEPDIR)/chronicle_ppc32_linux-main.Tpo" -c -o chronicle_ppc32_linux-main.obj `if test -f 'main.c'; then $(CYGPATH_W) 'main.c'; else $(CYGPATH_W) '$(srcdir)/main.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/chronicle_ppc32_linux-main.Tpo" "$(DEPDIR)/chronicle_ppc32_linux-main.Po"; else rm -f "$(DEPDIR)/chronicle_ppc32_linux-main.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='main.c' object='chronicle_ppc32_linux-main.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(chronicle_ppc32_linux_CPPFLAGS) $(CPPFLAGS) $(chronicle_ppc32_linux_CFLAGS) $(CFLAGS) -c -o chronicle_ppc32_linux-main.obj `if test -f 'main.c'; then $(CYGPATH_W) 'main.c'; else $(CYGPATH_W) '$(srcdir)/main.c'; fi`
+
+chronicle_x86_linux-main.o: main.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(chronicle_x86_linux_CPPFLAGS) $(CPPFLAGS) $(chronicle_x86_linux_CFLAGS) $(CFLAGS) -MT chronicle_x86_linux-main.o -MD -MP -MF "$(DEPDIR)/chronicle_x86_linux-main.Tpo" -c -o chronicle_x86_linux-main.o `test -f 'main.c' || echo '$(srcdir)/'`main.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/chronicle_x86_linux-main.Tpo" "$(DEPDIR)/chronicle_x86_linux-main.Po"; else rm -f "$(DEPDIR)/chronicle_x86_linux-main.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='main.c' object='chronicle_x86_linux-main.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(chronicle_x86_linux_CPPFLAGS) $(CPPFLAGS) $(chronicle_x86_linux_CFLAGS) $(CFLAGS) -c -o chronicle_x86_linux-main.o `test -f 'main.c' || echo '$(srcdir)/'`main.c
+
+chronicle_x86_linux-main.obj: main.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(chronicle_x86_linux_CPPFLAGS) $(CPPFLAGS) $(chronicle_x86_linux_CFLAGS) $(CFLAGS) -MT chronicle_x86_linux-main.obj -MD -MP -MF "$(DEPDIR)/chronicle_x86_linux-main.Tpo" -c -o chronicle_x86_linux-main.obj `if test -f 'main.c'; then $(CYGPATH_W) 'main.c'; else $(CYGPATH_W) '$(srcdir)/main.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/chronicle_x86_linux-main.Tpo" "$(DEPDIR)/chronicle_x86_linux-main.Po"; else rm -f "$(DEPDIR)/chronicle_x86_linux-main.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='main.c' object='chronicle_x86_linux-main.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(chronicle_x86_linux_CPPFLAGS) $(CPPFLAGS) $(chronicle_x86_linux_CFLAGS) $(CFLAGS) -c -o chronicle_x86_linux-main.obj `if test -f 'main.c'; then $(CYGPATH_W) 'main.c'; else $(CYGPATH_W) '$(srcdir)/main.c'; fi`
 uninstall-info-am:
 
 # This directory's subdirectories are mostly independent; you can cd
@@ -547,7 +749,7 @@ distclean-tags:
 	-rm -f TAGS ID GTAGS GRTAGS GSYMS GPATH tags
 
 distdir: $(DISTFILES)
-	$(mkdir_p) $(distdir)/../..
+	$(mkdir_p) $(distdir)/..
 	@srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`; \
 	topsrcdirstrip=`echo "$(top_srcdir)" | sed 's|.|.|g'`; \
 	list='$(DISTFILES)'; for file in $$list; do \
@@ -590,9 +792,8 @@ distdir: $(DISTFILES)
 	  fi; \
 	done
 check-am: all-am
-	$(MAKE) $(AM_MAKEFLAGS) $(check_PROGRAMS)
 check: check-recursive
-all-am: Makefile $(SCRIPTS)
+all-am: Makefile $(PROGRAMS) all-local
 installdirs: installdirs-recursive
 installdirs-am:
 install: install-recursive
@@ -621,7 +822,7 @@ maintainer-clean-generic:
 	@echo "it deletes files that may require special tools to rebuild."
 clean: clean-recursive
 
-clean-am: clean-checkPROGRAMS clean-generic mostlyclean-am
+clean-am: clean-generic clean-noinstPROGRAMS mostlyclean-am
 
 distclean: distclean-recursive
 	-rm -rf ./$(DEPDIR)
@@ -641,7 +842,7 @@ info-am:
 
 install-data-am:
 
-install-exec-am:
+install-exec-am: install-exec-local
 
 install-info: install-info-recursive
 
@@ -670,12 +871,13 @@ uninstall-am: uninstall-info-am
 
 uninstall-info: uninstall-info-recursive
 
-.PHONY: $(RECURSIVE_TARGETS) CTAGS GTAGS all all-am check check-am \
-	clean clean-checkPROGRAMS clean-generic clean-recursive ctags \
-	ctags-recursive distclean distclean-compile distclean-generic \
-	distclean-recursive distclean-tags distdir dvi dvi-am html \
-	html-am info info-am install install-am install-data \
-	install-data-am install-exec install-exec-am install-info \
+.PHONY: $(RECURSIVE_TARGETS) CTAGS GTAGS all all-am all-local check \
+	check-am clean clean-generic clean-noinstPROGRAMS \
+	clean-recursive ctags ctags-recursive distclean \
+	distclean-compile distclean-generic distclean-recursive \
+	distclean-tags distdir dvi dvi-am html html-am info info-am \
+	install install-am install-data install-data-am install-exec \
+	install-exec-am install-exec-local install-info \
 	install-info-am install-man install-strip installcheck \
 	installcheck-am installdirs installdirs-am maintainer-clean \
 	maintainer-clean-generic maintainer-clean-recursive \
@@ -684,10 +886,81 @@ uninstall-info: uninstall-info-recursive
 	uninstall uninstall-am uninstall-info-am
 
 
-@VGP_PPC32_AIX5_TRUE@@VGP_PPC64_AIX5_FALSE@ # persuade the AIX linker not to junk apparently unused
-@VGP_PPC32_AIX5_TRUE@@VGP_PPC64_AIX5_FALSE@ # function descriptors.  Unfortunately -Wl,-G -Wl,-bnogc
-@VGP_PPC32_AIX5_TRUE@@VGP_PPC64_AIX5_FALSE@ # produces a link error on 64-bit AIX, hence only 32-bit
-@VGP_PPC32_AIX5_TRUE@@VGP_PPC64_AIX5_FALSE@ # gets these flags.
+# The kludge that passes for vex's build system can't handle parallel
+# builds.  So, for the time being, serialise all Valgrind building.
+# (this is equivalent to enforcing "make -j 1".
+.NOTPARALLEL:
+
+install-exec-local:
+	if [ -n "$(noinst_PROGRAMS)" ] ; then \
+	  for f in $(noinst_PROGRAMS); do \
+	    name=`echo $$f | sed -e 's/-\([^-]*-[^-.]*\)\(\..*\)\?$$/\2/'`; \
+	    plat=`echo $$f | sed -e 's/^.*-\([^-]*-[^-.]*\)\(\..*\)\?$$/\1/'`; \
+	    $(mkinstalldirs) $(DESTDIR)$(valdir)/$$plat; \
+	    $(INSTALL_PROGRAM) $$f $(DESTDIR)$(valdir)/$$plat/$$name; \
+	  done ; \
+	fi ; \
+	if [ -n "$(noinst_LIBRARIES)" ] ; then \
+	  for f in $(noinst_LIBRARIES) expr_wont_match_me; do \
+	    if expr match $$f libcoregrind_ > /dev/null ; then \
+	      pU=`echo $$f | sed -e 's/libcoregrind_//g' -e 's/\.a//g'` ; \
+	      pD=`echo $$pU | sed -e 's/_/-/g'` ; \
+	      $(INSTALL_DATA) $$f $(DESTDIR)$(valdir)/$$pD/libcoregrind.a ; \
+	      $(INSTALL_DATA) @VEX_DIR@/libvex_$$pU.a \
+				$(DESTDIR)$(valdir)/$$pD/libvex.a ; \
+	    fi ; \
+	  done ; \
+	fi
+
+all-local:
+	if [ -n "$(noinst_PROGRAMS)" ] ; then \
+	  for f in $(noinst_PROGRAMS); do \
+	    name=`echo $$f | sed -e 's/-\([^-]*-[^-.]*\)\(\..*\)\?$$/\2/'`; \
+	    plat=`echo $$f | sed -e 's/^.*-\([^-]*-[^-.]*\)\(\..*\)\?$$/\1/'`; \
+	    mkdir -p $(inplacedir)/$$plat; \
+	    rm -f $(inplacedir)/$$plat/$$name; \
+	    ln -f -s ../../$(subdir)/$$f $(inplacedir)/$$plat/$$name; \
+	  done ; \
+	fi
+
+@VEX_DIR@/libvex_x86_linux.a: @VEX_DIR@/priv/main/vex_svnversion.h
+	$(MAKE) -C @VEX_DIR@ CC="$(CC)" AR="$(AR)" \
+	libvex_x86_linux.a \
+	EXTRA_CFLAGS="$(AM_CFLAGS_X86_LINUX) @FLAG_WDECL_AFTER_STMT@ \
+			@FLAG_FNO_STACK_PROTECTOR@"
+
+@VEX_DIR@/libvex_amd64_linux.a: @VEX_DIR@/priv/main/vex_svnversion.h
+	$(MAKE) -C @VEX_DIR@ CC="$(CC)" AR="$(AR)" \
+	libvex_amd64_linux.a \
+	EXTRA_CFLAGS="$(AM_CFLAGS_AMD64_LINUX) @FLAG_WDECL_AFTER_STMT@ \
+			@FLAG_FNO_STACK_PROTECTOR@"
+
+@VEX_DIR@/libvex_ppc32_linux.a: @VEX_DIR@/priv/main/vex_svnversion.h
+	$(MAKE) -C @VEX_DIR@ CC="$(CC)" AR="$(AR)" \
+	libvex_ppc32_linux.a \
+	EXTRA_CFLAGS="$(AM_CFLAGS_PPC32_LINUX) @FLAG_WDECL_AFTER_STMT@ \
+			@FLAG_FNO_STACK_PROTECTOR@"
+
+@VEX_DIR@/libvex_ppc64_linux.a: @VEX_DIR@/priv/main/vex_svnversion.h
+	$(MAKE) -C @VEX_DIR@ CC="$(CC)" AR="$(AR)" \
+	libvex_ppc64_linux.a \
+	EXTRA_CFLAGS="$(AM_CFLAGS_PPC64_LINUX) @FLAG_WDECL_AFTER_STMT@ \
+			@FLAG_FNO_STACK_PROTECTOR@"
+
+@VEX_DIR@/libvex_ppc32_aix5.a: @VEX_DIR@/priv/main/vex_svnversion.h
+	$(MAKE) -C @VEX_DIR@ CC="$(CC)" AR="$(AR) -X32" \
+	libvex_ppc32_aix5.a \
+	EXTRA_CFLAGS="$(AM_CFLAGS_PPC32_AIX5) @FLAG_WDECL_AFTER_STMT@ \
+			@FLAG_FNO_STACK_PROTECTOR@"
+
+@VEX_DIR@/libvex_ppc64_aix5.a: @VEX_DIR@/priv/main/vex_svnversion.h
+	$(MAKE) -C @VEX_DIR@ CC="$(CC)" AR="$(AR) -X64" \
+	libvex_ppc64_aix5.a \
+	EXTRA_CFLAGS="$(AM_CFLAGS_PPC64_AIX5) @FLAG_WDECL_AFTER_STMT@ \
+			@FLAG_FNO_STACK_PROTECTOR@"
+
+@VEX_DIR@/priv/main/vex_svnversion.h:
+	$(MAKE) -C @VEX_DIR@ CC="$(CC)" version
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

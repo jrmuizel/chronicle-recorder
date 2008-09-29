@@ -3,6 +3,10 @@
 
 = News =
 
+== 29/9/08: Updated build system ==
+
+I updated the build system and file layout so that all the Chronicle helper apps and tests are built as part of the Valgrind build. This simplifies things somewhat and also makes proper Chronicle installation happen on "make install". The Build page has been updated with the new instructions.
+
 == 29/9/08: Updated to Valgrind 3.3.1 ==
 
 == 16/8/07: New features ==

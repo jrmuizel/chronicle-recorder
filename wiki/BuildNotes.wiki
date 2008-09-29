@@ -10,24 +10,27 @@ Chronicle is packaged as a modified Valgrind. It requires a few devel packages t
  * elfutils-libelf-devel (Red Hat)
  * libelfg0-dev (Ubuntu)
 
-Check it out from Subversion trunk (do not download the initial code drop, since it is very old and won't work), and then
+Check it out from Subversion trunk (do not download the initial code drop, since it is very old and won't work). Then, to install it in $HOME/bin,
 {{{
 cd valgrind-3.3.1
-./configure && make
+./configure --prefix=$HOME && make install
 }}}
 
-(You may find it convenient to use "configure --prefix=/my/dir" to install Chronicle's valgrind somewhere other than the default Valgrind location.)
-
-To run the Chronicle tests,
+Then to run the Chronicle tests,
 {{{
 make check
 }}}
 
 To apply Chronicle to your own program,
 {{{
-make install
 CHRONICLE_DB=/tmp/ls.db valgrind --tool=chronicle ls
+}}}
+
+To start chronicle-query and issue JSON queries:
+{{{
 chronicle-query --db /tmp/ls.db
 }}}
+
+Ordinarily you would not start chronicle-query directly, but instead use a higher-level tool such as [http://code.google.com/p/chronomancer Chronomancer].
 
 Chronicle is currently based on Valgrind 3.3.1. Chronicle requires the x86 or AMD64 architectures on Linux, but should be fairly easy to port to any platform Valgrind itself supports.

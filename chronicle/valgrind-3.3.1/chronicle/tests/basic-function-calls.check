@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-require 'tests/common.pl';
+require 'common.pl';
 
 my @v;
 
@@ -21,7 +21,7 @@ my $endTStamp = $v[0]->{endTStamp};
 die unless scalar(@v) == 2;
 die unless $v[0]->{name} eq "print";
 die unless $v[0]->{language} eq "C89";
-die unless $v[0]->{compilationUnit} eq "tests/basic-function-calls.c";
+die unless $v[0]->{compilationUnit} =~ "basic-function-calls.c";
 die unless $v[0]->{entryPoint};
 die unless $v[0]->{prologueEnd};
 die unless $v[0]->{beginTStamp};
@@ -39,8 +39,9 @@ my @calls = grep { $_->{type} && $_->{type} eq "normal"; } @v;
 die unless scalar(@calls) == 5;
 my @mmap = grep { $_->{type} && $_->{type} eq "mmap"; } @v;
 die unless scalar(@mmap) == 1;
-die unless $mmap[0]->{filename} =~ m!/tests/basic-function-calls.bin!;
+die unless $mmap[0]->{filename} =~ m!/chronicle/tests/basic-function-calls!;
 die unless $mmap[0]->{mapped};
 die unless $mmap[0]->{read};
 die unless !$mmap[0]->{write};
 die unless $mmap[0]->{execute};
+

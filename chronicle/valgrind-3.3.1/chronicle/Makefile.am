@@ -67,7 +67,7 @@ SOURCES_QUERY = \
 	query/query.c \
 	query/reg_reconstruct.c
 
-CFLAGS_CHRONICLE_TOOLS = -Ibase -D_GNU_SOURCE -Wall
+CFLAGS_CHRONICLE_TOOLS = -Ibase -D_GNU_SOURCE -Wall -g
 LDFLAGS_CHRONICLE_TOOLS = -lz -lpthread -lelf
 
 chronicle_indexer_SOURCES = $(SOURCES_BASE) $(SOURCES_INDEXER)

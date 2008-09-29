@@ -12,7 +12,7 @@ There is no configure script. Chronicle doesn't depend on much and it only runs 
 
 Check it out from Subversion trunk (do not download the initial code drop, since it is very old and won't work) and run "make" in the Chronicle directory. Run "make check" to verify that it actually works.
 
-Chronicle requires the x86 or AMD64 architectures.
+Chronicle is currently based on Valgrind 3.3.1. Chronicle requires the x86 or AMD64 architectures on Linux, but should be fairly easy to port to any platform Valgrind itself supports.
 
 = Running Chronicle =
 

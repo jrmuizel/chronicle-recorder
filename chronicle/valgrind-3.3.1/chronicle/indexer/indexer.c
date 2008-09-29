@@ -23,7 +23,7 @@
    The GNU General Public License is contained in the file COPYING.
 */
 
-#include "config.h"
+#include "base/config.h"
 #include "log_stream.h"
 #include "util.h"
 #include "effect_map_write.h"
@@ -139,10 +139,11 @@ static void set_record_handler(uint32_t type, RecordHandler handler,
   if (type >= record_handler_size) {
     uint32_t new_size = record_handler_size*2 + 10;
     uint32_t i;
+    RecordHandlerClosure* new_handlers;
     if (type >= new_size) {
       new_size = type + 1;
     }
-    RecordHandlerClosure* new_handlers =
+    new_handlers =
       (RecordHandlerClosure*)safe_malloc(new_size*sizeof(RecordHandlerClosure));
     memcpy(new_handlers, record_handlers,
            record_handler_size*sizeof(RecordHandlerClosure));
@@ -253,10 +254,10 @@ static void sort_atoms_by_instruction(CH_BunchedEffectAtom* atoms) {
       if (atoms[j].length_increment == 0)
         break;
       if (atoms[i].instruction_index > atoms[j].instruction_index) {
-        sorted = 0;
         CH_BunchedEffectAtom tmp = atoms[j];
         atoms[j] = atoms[i];
         atoms[i] = tmp;
+        sorted = 0;
       }
     }
     if (sorted)

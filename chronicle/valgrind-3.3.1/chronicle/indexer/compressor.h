@@ -32,7 +32,7 @@
  * bitmaps.
  */
 
-#include "config.h"
+#include "base/config.h"
 #include "util.h"
 
 #include <stdint.h>

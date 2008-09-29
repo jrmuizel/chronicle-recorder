@@ -3960,8 +3960,9 @@ static void interpreter_run(Dwarf2ExprInterpreter* interp,
       }
       case DW_OP_xderef: {
         CH_Address v = interpreter_pop(interp);
+        CH_Address mem;
         interpreter_pop(interp); /* unused address space identifier */
-        CH_Address mem = read_address_from_memory(interp, v, interp->addr_size);
+        mem = read_address_from_memory(interp, v, interp->addr_size);
         interpreter_push(interp, mem);
         break;
       }
@@ -3970,8 +3971,9 @@ static void interpreter_run(Dwarf2ExprInterpreter* interp,
         interp->is_OK = read_uint8_t(interp->obj, &expr, expr_end, &c);
         if (interp->is_OK) {
           CH_Address v = interpreter_pop(interp);
+          CH_Address mem; 
           interpreter_pop(interp); /* unused address space identifier */
-          CH_Address mem = read_address_from_memory(interp, v, c);
+          mem = read_address_from_memory(interp, v, c);
           interpreter_push(interp, mem);
         }
         break;
@@ -4405,11 +4407,13 @@ static int compute_data_location(EntryReader* reader, uint64_t base_address,
 }
 
 static int scan_struct_fields(EntryReader* reader, CH_DbgDwarf2TypeInfo* info) {
+  CH_DbgDwarf2Offset child;
+
   if (!reader->has_children)
     return 1;
     
   /* descend into this entry */
-  CH_DbgDwarf2Offset child = find_end_of_entry(reader);
+  child = find_end_of_entry(reader);
   for (;;) {
     EntryReader child_reader;
     if (!begin_reading_entry(reader->cu_reader, child, &child_reader))

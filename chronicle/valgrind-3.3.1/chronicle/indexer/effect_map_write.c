@@ -29,7 +29,7 @@
 
 #include "effect_map_write.h"
 #include "util.h"
-#include "config.h"
+#include "base/config.h"
 
 #define PTR_BITS (sizeof(void*)*8)
 

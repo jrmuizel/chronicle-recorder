@@ -114,7 +114,13 @@ sub do_query {
   return @result;
 }
 
-open(DB, "<".$ENV{CHRONICLE_DB});
+my $test = $0;
+$test =~ s!.check$!!;
+$cmd = "PATH=..:$ENV{PATH} CHRONICLE_DB=$test.db VALGRIND_LIB=../../.in_place ../../coregrind/valgrind --tool=chronicle $test";
+print STDERR "Running $cmd\n";
+system($cmd);
+
+open(DB, "<$test.db");
 my $retries = 0;
 while (1) {
   seek(DB, 14, 0);
@@ -131,5 +137,5 @@ while (1) {
 }
 close(DB);
 
-open2(\*IN, \*OUT, './chronicle-query');
+open2(\*IN, \*OUT, "../chronicle-query --db $test.db");
 

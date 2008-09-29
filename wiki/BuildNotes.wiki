@@ -1,25 +1,33 @@
 #summary Notes on getting Chronicle to build and work
 #labels Phase-Deploy,Featured
 
-= Build Issues =
+= Build =
 
-There is no configure script. Chronicle doesn't depend on much and it only runs on Linux with gcc right now. It should build and run on any Linux system with gcc, providing the correct devel packages are installed. Packages you might need, depending on distro:
+Chronicle is packaged as a modified Valgrind. It requires a few devel packages to be installed. Packages you might need, depending on distro:
  * libc6-dev (Ubuntu)
  * libc6-dev-i386 (Ubuntu 64-bit)
  * libelf (SUSE)
  * elfutils-libelf-devel (Red Hat)
  * libelfg0-dev (Ubuntu)
 
-Check it out from Subversion trunk (do not download the initial code drop, since it is very old and won't work) and run "make" in the Chronicle directory. Run "make check" to verify that it actually works.
+Check it out from Subversion trunk (do not download the initial code drop, since it is very old and won't work), and then
+{{{
+cd valgrind-3.3.1
+./configure && make
+}}}
+
+(You may find it convenient to use "configure --prefix=/my/dir" to install Chronicle's valgrind somewhere other than the default Valgrind location.)
+
+To run the Chronicle tests,
+{{{
+make check
+}}}
+
+To apply Chronicle to your own program,
+{{{
+make install
+CHRONICLE_DB=/tmp/ls.db valgrind --tool=chronicle ls
+chronicle-query --db /tmp/ls.db
+}}}
 
 Chronicle is currently based on Valgrind 3.3.1. Chronicle requires the x86 or AMD64 architectures on Linux, but should be fairly easy to port to any platform Valgrind itself supports.
-
-= Running Chronicle =
-
-I create a wrapper script `chronicle` that looks like this:
-{{{
-#!/bin/sh
-
-PATH=/home/roc/chronicle:$PATH VALGRIND_LIB=/home/roc/chronicle/valgrind/.in_place /home/roc/chronicle/valgrind/coregrind/valgrind --tool=chronicle $*
-}}}
-(This assumes Chronicle has been built in `/home/roc/chronicle`.) Then just run `chronicle --db /tmp/myrun.db ...program and arguments...`. This should run the program as normal (but _extremely_ slowly) and leave a (large) database file in `/tmp/myrun.db`. You can of course name the database whatever you want.

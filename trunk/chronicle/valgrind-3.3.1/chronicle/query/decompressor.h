@@ -33,6 +33,8 @@
 
 #include <stdint.h>
 
+#include "indexer/compressor.h"
+
 /** Call this before using any functions in this file. */
 void decompress_global_init();
 

@@ -68,10 +68,14 @@ DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
 	$(top_srcdir)/Makefile.tool-flags.am \
 	$(top_srcdir)/Makefile.tool-inplace.am \
 	$(top_srcdir)/Makefile.tool.am
-noinst_PROGRAMS = $(am__EXEEXT_1) $(am__EXEEXT_2) $(am__EXEEXT_3)
+noinst_PROGRAMS = $(am__EXEEXT_4) $(am__EXEEXT_5) $(am__EXEEXT_6)
 @VGP_X86_LINUX_TRUE@am__append_1 = chronicle-x86-linux
 @VGP_AMD64_LINUX_TRUE@am__append_2 = chronicle-amd64-linux
 @VGP_PPC32_LINUX_TRUE@am__append_3 = chronicle-ppc32-linux
+bin_PROGRAMS = $(am__EXEEXT_1) $(am__EXEEXT_2) $(am__EXEEXT_3)
+@VGP_X86_LINUX_TRUE@am__append_4 = chronicle-indexer chronicle-query
+@VGP_AMD64_LINUX_TRUE@am__append_5 = chronicle-indexer chronicle-query
+@VGP_PPC32_LINUX_TRUE@am__append_6 = chronicle-indexer chronicle-query
 subdir = chronicle
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.in
@@ -80,10 +84,18 @@ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
-@VGP_X86_LINUX_TRUE@am__EXEEXT_1 = chronicle-x86-linux$(EXEEXT)
-@VGP_AMD64_LINUX_TRUE@am__EXEEXT_2 = chronicle-amd64-linux$(EXEEXT)
-@VGP_PPC32_LINUX_TRUE@am__EXEEXT_3 = chronicle-ppc32-linux$(EXEEXT)
-PROGRAMS = $(noinst_PROGRAMS)
+@VGP_X86_LINUX_TRUE@am__EXEEXT_1 = chronicle-indexer$(EXEEXT) \
+@VGP_X86_LINUX_TRUE@	chronicle-query$(EXEEXT)
+@VGP_AMD64_LINUX_TRUE@am__EXEEXT_2 = chronicle-indexer$(EXEEXT) \
+@VGP_AMD64_LINUX_TRUE@	chronicle-query$(EXEEXT)
+@VGP_PPC32_LINUX_TRUE@am__EXEEXT_3 = chronicle-indexer$(EXEEXT) \
+@VGP_PPC32_LINUX_TRUE@	chronicle-query$(EXEEXT)
+am__installdirs = "$(DESTDIR)$(bindir)"
+binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
+@VGP_X86_LINUX_TRUE@am__EXEEXT_4 = chronicle-x86-linux$(EXEEXT)
+@VGP_AMD64_LINUX_TRUE@am__EXEEXT_5 = chronicle-amd64-linux$(EXEEXT)
+@VGP_PPC32_LINUX_TRUE@am__EXEEXT_6 = chronicle-ppc32-linux$(EXEEXT)
+PROGRAMS = $(bin_PROGRAMS) $(noinst_PROGRAMS)
 am__objects_1 = chronicle_amd64_linux-main.$(OBJEXT)
 am_chronicle_amd64_linux_OBJECTS = $(am__objects_1)
 chronicle_amd64_linux_OBJECTS = $(am_chronicle_amd64_linux_OBJECTS)
@@ -92,15 +104,40 @@ am__DEPENDENCIES_1 =  \
 	@VEX_DIR@/libvex_amd64_linux.a
 am__DEPENDENCIES_2 =
 am__DEPENDENCIES_3 = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_2)
-am__objects_2 = chronicle_ppc32_linux-main.$(OBJEXT)
-am_chronicle_ppc32_linux_OBJECTS = $(am__objects_2)
+am__objects_2 = chronicle_indexer-util.$(OBJEXT) \
+	chronicle_indexer-thread_util.$(OBJEXT) \
+	chronicle_indexer-json.$(OBJEXT)
+am__objects_3 = chronicle_indexer-compressor.$(OBJEXT) \
+	chronicle_indexer-database_write.$(OBJEXT) \
+	chronicle_indexer-effect_map_write.$(OBJEXT) \
+	chronicle_indexer-indexer.$(OBJEXT)
+am_chronicle_indexer_OBJECTS = $(am__objects_2) $(am__objects_3)
+chronicle_indexer_OBJECTS = $(am_chronicle_indexer_OBJECTS)
+chronicle_indexer_LDADD = $(LDADD)
+am__objects_4 = chronicle_ppc32_linux-main.$(OBJEXT)
+am_chronicle_ppc32_linux_OBJECTS = $(am__objects_4)
 chronicle_ppc32_linux_OBJECTS = $(am_chronicle_ppc32_linux_OBJECTS)
 am__DEPENDENCIES_4 =  \
 	$(top_builddir)/coregrind/libcoregrind_ppc32_linux.a \
 	@VEX_DIR@/libvex_ppc32_linux.a
 am__DEPENDENCIES_5 = $(am__DEPENDENCIES_4) $(am__DEPENDENCIES_2)
-am__objects_3 = chronicle_x86_linux-main.$(OBJEXT)
-am_chronicle_x86_linux_OBJECTS = $(am__objects_3)
+am__objects_5 = chronicle_query-util.$(OBJEXT) \
+	chronicle_query-thread_util.$(OBJEXT) \
+	chronicle_query-json.$(OBJEXT)
+am__objects_6 = chronicle_query-database_read.$(OBJEXT) \
+	chronicle_query-debug.$(OBJEXT) \
+	chronicle_query-debug_dwarf2.$(OBJEXT) \
+	chronicle_query-decompression_cache.$(OBJEXT) \
+	chronicle_query-decompressor.$(OBJEXT) \
+	chronicle_query-effect_map_read.$(OBJEXT) \
+	chronicle_query-memory_map.$(OBJEXT) \
+	chronicle_query-query.$(OBJEXT) \
+	chronicle_query-reg_reconstruct.$(OBJEXT)
+am_chronicle_query_OBJECTS = $(am__objects_5) $(am__objects_6)
+chronicle_query_OBJECTS = $(am_chronicle_query_OBJECTS)
+chronicle_query_LDADD = $(LDADD)
+am__objects_7 = chronicle_x86_linux-main.$(OBJEXT)
+am_chronicle_x86_linux_OBJECTS = $(am__objects_7)
 chronicle_x86_linux_OBJECTS = $(am_chronicle_x86_linux_OBJECTS)
 am__DEPENDENCIES_6 =  \
 	$(top_builddir)/coregrind/libcoregrind_x86_linux.a \
@@ -114,11 +151,11 @@ COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 SOURCES = $(chronicle_amd64_linux_SOURCES) \
-	$(chronicle_ppc32_linux_SOURCES) \
-	$(chronicle_x86_linux_SOURCES)
+	$(chronicle_indexer_SOURCES) $(chronicle_ppc32_linux_SOURCES) \
+	$(chronicle_query_SOURCES) $(chronicle_x86_linux_SOURCES)
 DIST_SOURCES = $(chronicle_amd64_linux_SOURCES) \
-	$(chronicle_ppc32_linux_SOURCES) \
-	$(chronicle_x86_linux_SOURCES)
+	$(chronicle_indexer_SOURCES) $(chronicle_ppc32_linux_SOURCES) \
+	$(chronicle_query_SOURCES) $(chronicle_x86_linux_SOURCES)
 RECURSIVE_TARGETS = all-recursive check-recursive dvi-recursive \
 	html-recursive info-recursive install-data-recursive \
 	install-exec-recursive install-info-recursive \
@@ -503,6 +540,36 @@ chronicle_ppc32_linux_CFLAGS = $(AM_CFLAGS_PPC32_LINUX)
 chronicle_ppc32_linux_DEPENDENCIES = $(COREGRIND_LIBS_PPC32_LINUX)
 chronicle_ppc32_linux_LDADD = $(TOOL_LDADD_PPC32_LINUX)
 chronicle_ppc32_linux_LDFLAGS = $(TOOL_LDFLAGS_PPC32_LINUX)
+SOURCES_BASE = \
+	base/util.c \
+	base/thread_util.c \
+	base/json.c
+
+SOURCES_INDEXER = \
+	indexer/compressor.c \
+	indexer/database_write.c \
+	indexer/effect_map_write.c \
+	indexer/indexer.c
+
+SOURCES_QUERY = \
+	query/database_read.c \
+	query/debug.c \
+	query/debug_dwarf2.c \
+	query/decompression_cache.c \
+	query/decompressor.c \
+	query/effect_map_read.c \
+	query/memory_map.c \
+	query/query.c \
+	query/reg_reconstruct.c
+
+CFLAGS_CHRONICLE_TOOLS = -Ibase -D_GNU_SOURCE -Wall
+LDFLAGS_CHRONICLE_TOOLS = -lz -lpthread -lelf
+chronicle_indexer_SOURCES = $(SOURCES_BASE) $(SOURCES_INDEXER)
+chronicle_indexer_CFLAGS = $(CFLAGS_CHRONICLE_TOOLS)
+chronicle_indexer_LDFLAGS = $(LDFLAGS_CHRONICLE_TOOLS)
+chronicle_query_SOURCES = $(SOURCES_BASE) $(SOURCES_QUERY)
+chronicle_query_CFLAGS = $(CFLAGS_CHRONICLE_TOOLS)
+chronicle_query_LDFLAGS = $(LDFLAGS_CHRONICLE_TOOLS)
 all: all-recursive
 
 .SUFFIXES:
@@ -536,15 +603,44 @@ $(top_srcdir)/configure: @MAINTAINER_MODE_TRUE@ $(am__configure_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(ACLOCAL_M4): @MAINTAINER_MODE_TRUE@ $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
+install-binPROGRAMS: $(bin_PROGRAMS)
+	@$(NORMAL_INSTALL)
+	test -z "$(bindir)" || $(mkdir_p) "$(DESTDIR)$(bindir)"
+	@list='$(bin_PROGRAMS)'; for p in $$list; do \
+	  p1=`echo $$p|sed 's/$(EXEEXT)$$//'`; \
+	  if test -f $$p \
+	  ; then \
+	    f=`echo "$$p1" | sed 's,^.*/,,;$(transform);s/$$/$(EXEEXT)/'`; \
+	   echo " $(INSTALL_PROGRAM_ENV) $(binPROGRAMS_INSTALL) '$$p' '$(DESTDIR)$(bindir)/$$f'"; \
+	   $(INSTALL_PROGRAM_ENV) $(binPROGRAMS_INSTALL) "$$p" "$(DESTDIR)$(bindir)/$$f" || exit 1; \
+	  else :; fi; \
+	done
+
+uninstall-binPROGRAMS:
+	@$(NORMAL_UNINSTALL)
+	@list='$(bin_PROGRAMS)'; for p in $$list; do \
+	  f=`echo "$$p" | sed 's,^.*/,,;s/$(EXEEXT)$$//;$(transform);s/$$/$(EXEEXT)/'`; \
+	  echo " rm -f '$(DESTDIR)$(bindir)/$$f'"; \
+	  rm -f "$(DESTDIR)$(bindir)/$$f"; \
+	done
+
+clean-binPROGRAMS:
+	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
 
 clean-noinstPROGRAMS:
 	-test -z "$(noinst_PROGRAMS)" || rm -f $(noinst_PROGRAMS)
 chronicle-amd64-linux$(EXEEXT): $(chronicle_amd64_linux_OBJECTS) $(chronicle_amd64_linux_DEPENDENCIES) 
 	@rm -f chronicle-amd64-linux$(EXEEXT)
 	$(LINK) $(chronicle_amd64_linux_LDFLAGS) $(chronicle_amd64_linux_OBJECTS) $(chronicle_amd64_linux_LDADD) $(LIBS)
+chronicle-indexer$(EXEEXT): $(chronicle_indexer_OBJECTS) $(chronicle_indexer_DEPENDENCIES) 
+	@rm -f chronicle-indexer$(EXEEXT)
+	$(LINK) $(chronicle_indexer_LDFLAGS) $(chronicle_indexer_OBJECTS) $(chronicle_indexer_LDADD) $(LIBS)
 chronicle-ppc32-linux$(EXEEXT): $(chronicle_ppc32_linux_OBJECTS) $(chronicle_ppc32_linux_DEPENDENCIES) 
 	@rm -f chronicle-ppc32-linux$(EXEEXT)
 	$(LINK) $(chronicle_ppc32_linux_LDFLAGS) $(chronicle_ppc32_linux_OBJECTS) $(chronicle_ppc32_linux_LDADD) $(LIBS)
+chronicle-query$(EXEEXT): $(chronicle_query_OBJECTS) $(chronicle_query_DEPENDENCIES) 
+	@rm -f chronicle-query$(EXEEXT)
+	$(LINK) $(chronicle_query_LDFLAGS) $(chronicle_query_OBJECTS) $(chronicle_query_LDADD) $(LIBS)
 chronicle-x86-linux$(EXEEXT): $(chronicle_x86_linux_OBJECTS) $(chronicle_x86_linux_DEPENDENCIES) 
 	@rm -f chronicle-x86-linux$(EXEEXT)
 	$(LINK) $(chronicle_x86_linux_LDFLAGS) $(chronicle_x86_linux_OBJECTS) $(chronicle_x86_linux_LDADD) $(LIBS)
@@ -556,7 +652,26 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/chronicle_amd64_linux-main.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/chronicle_indexer-compressor.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/chronicle_indexer-database_write.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/chronicle_indexer-effect_map_write.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/chronicle_indexer-indexer.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/chronicle_indexer-json.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/chronicle_indexer-thread_util.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/chronicle_indexer-util.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/chronicle_ppc32_linux-main.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/chronicle_query-database_read.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/chronicle_query-debug.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/chronicle_query-debug_dwarf2.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/chronicle_query-decompression_cache.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/chronicle_query-decompressor.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/chronicle_query-effect_map_read.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/chronicle_query-json.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/chronicle_query-memory_map.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/chronicle_query-query.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/chronicle_query-reg_reconstruct.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/chronicle_query-thread_util.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/chronicle_query-util.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/chronicle_x86_linux-main.Po@am__quote@
 
 .c.o:
@@ -587,6 +702,104 @@ chronicle_amd64_linux-main.obj: main.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(chronicle_amd64_linux_CPPFLAGS) $(CPPFLAGS) $(chronicle_amd64_linux_CFLAGS) $(CFLAGS) -c -o chronicle_amd64_linux-main.obj `if test -f 'main.c'; then $(CYGPATH_W) 'main.c'; else $(CYGPATH_W) '$(srcdir)/main.c'; fi`
 
+chronicle_indexer-util.o: base/util.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_indexer_CFLAGS) $(CFLAGS) -MT chronicle_indexer-util.o -MD -MP -MF "$(DEPDIR)/chronicle_indexer-util.Tpo" -c -o chronicle_indexer-util.o `test -f 'base/util.c' || echo '$(srcdir)/'`base/util.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/chronicle_indexer-util.Tpo" "$(DEPDIR)/chronicle_indexer-util.Po"; else rm -f "$(DEPDIR)/chronicle_indexer-util.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='base/util.c' object='chronicle_indexer-util.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_indexer_CFLAGS) $(CFLAGS) -c -o chronicle_indexer-util.o `test -f 'base/util.c' || echo '$(srcdir)/'`base/util.c
+
+chronicle_indexer-util.obj: base/util.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_indexer_CFLAGS) $(CFLAGS) -MT chronicle_indexer-util.obj -MD -MP -MF "$(DEPDIR)/chronicle_indexer-util.Tpo" -c -o chronicle_indexer-util.obj `if test -f 'base/util.c'; then $(CYGPATH_W) 'base/util.c'; else $(CYGPATH_W) '$(srcdir)/base/util.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/chronicle_indexer-util.Tpo" "$(DEPDIR)/chronicle_indexer-util.Po"; else rm -f "$(DEPDIR)/chronicle_indexer-util.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='base/util.c' object='chronicle_indexer-util.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_indexer_CFLAGS) $(CFLAGS) -c -o chronicle_indexer-util.obj `if test -f 'base/util.c'; then $(CYGPATH_W) 'base/util.c'; else $(CYGPATH_W) '$(srcdir)/base/util.c'; fi`
+
+chronicle_indexer-thread_util.o: base/thread_util.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_indexer_CFLAGS) $(CFLAGS) -MT chronicle_indexer-thread_util.o -MD -MP -MF "$(DEPDIR)/chronicle_indexer-thread_util.Tpo" -c -o chronicle_indexer-thread_util.o `test -f 'base/thread_util.c' || echo '$(srcdir)/'`base/thread_util.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/chronicle_indexer-thread_util.Tpo" "$(DEPDIR)/chronicle_indexer-thread_util.Po"; else rm -f "$(DEPDIR)/chronicle_indexer-thread_util.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='base/thread_util.c' object='chronicle_indexer-thread_util.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_indexer_CFLAGS) $(CFLAGS) -c -o chronicle_indexer-thread_util.o `test -f 'base/thread_util.c' || echo '$(srcdir)/'`base/thread_util.c
+
+chronicle_indexer-thread_util.obj: base/thread_util.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_indexer_CFLAGS) $(CFLAGS) -MT chronicle_indexer-thread_util.obj -MD -MP -MF "$(DEPDIR)/chronicle_indexer-thread_util.Tpo" -c -o chronicle_indexer-thread_util.obj `if test -f 'base/thread_util.c'; then $(CYGPATH_W) 'base/thread_util.c'; else $(CYGPATH_W) '$(srcdir)/base/thread_util.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/chronicle_indexer-thread_util.Tpo" "$(DEPDIR)/chronicle_indexer-thread_util.Po"; else rm -f "$(DEPDIR)/chronicle_indexer-thread_util.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='base/thread_util.c' object='chronicle_indexer-thread_util.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_indexer_CFLAGS) $(CFLAGS) -c -o chronicle_indexer-thread_util.obj `if test -f 'base/thread_util.c'; then $(CYGPATH_W) 'base/thread_util.c'; else $(CYGPATH_W) '$(srcdir)/base/thread_util.c'; fi`
+
+chronicle_indexer-json.o: base/json.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_indexer_CFLAGS) $(CFLAGS) -MT chronicle_indexer-json.o -MD -MP -MF "$(DEPDIR)/chronicle_indexer-json.Tpo" -c -o chronicle_indexer-json.o `test -f 'base/json.c' || echo '$(srcdir)/'`base/json.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/chronicle_indexer-json.Tpo" "$(DEPDIR)/chronicle_indexer-json.Po"; else rm -f "$(DEPDIR)/chronicle_indexer-json.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='base/json.c' object='chronicle_indexer-json.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_indexer_CFLAGS) $(CFLAGS) -c -o chronicle_indexer-json.o `test -f 'base/json.c' || echo '$(srcdir)/'`base/json.c
+
+chronicle_indexer-json.obj: base/json.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_indexer_CFLAGS) $(CFLAGS) -MT chronicle_indexer-json.obj -MD -MP -MF "$(DEPDIR)/chronicle_indexer-json.Tpo" -c -o chronicle_indexer-json.obj `if test -f 'base/json.c'; then $(CYGPATH_W) 'base/json.c'; else $(CYGPATH_W) '$(srcdir)/base/json.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/chronicle_indexer-json.Tpo" "$(DEPDIR)/chronicle_indexer-json.Po"; else rm -f "$(DEPDIR)/chronicle_indexer-json.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='base/json.c' object='chronicle_indexer-json.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_indexer_CFLAGS) $(CFLAGS) -c -o chronicle_indexer-json.obj `if test -f 'base/json.c'; then $(CYGPATH_W) 'base/json.c'; else $(CYGPATH_W) '$(srcdir)/base/json.c'; fi`
+
+chronicle_indexer-compressor.o: indexer/compressor.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_indexer_CFLAGS) $(CFLAGS) -MT chronicle_indexer-compressor.o -MD -MP -MF "$(DEPDIR)/chronicle_indexer-compressor.Tpo" -c -o chronicle_indexer-compressor.o `test -f 'indexer/compressor.c' || echo '$(srcdir)/'`indexer/compressor.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/chronicle_indexer-compressor.Tpo" "$(DEPDIR)/chronicle_indexer-compressor.Po"; else rm -f "$(DEPDIR)/chronicle_indexer-compressor.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='indexer/compressor.c' object='chronicle_indexer-compressor.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_indexer_CFLAGS) $(CFLAGS) -c -o chronicle_indexer-compressor.o `test -f 'indexer/compressor.c' || echo '$(srcdir)/'`indexer/compressor.c
+
+chronicle_indexer-compressor.obj: indexer/compressor.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_indexer_CFLAGS) $(CFLAGS) -MT chronicle_indexer-compressor.obj -MD -MP -MF "$(DEPDIR)/chronicle_indexer-compressor.Tpo" -c -o chronicle_indexer-compressor.obj `if test -f 'indexer/compressor.c'; then $(CYGPATH_W) 'indexer/compressor.c'; else $(CYGPATH_W) '$(srcdir)/indexer/compressor.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/chronicle_indexer-compressor.Tpo" "$(DEPDIR)/chronicle_indexer-compressor.Po"; else rm -f "$(DEPDIR)/chronicle_indexer-compressor.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='indexer/compressor.c' object='chronicle_indexer-compressor.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_indexer_CFLAGS) $(CFLAGS) -c -o chronicle_indexer-compressor.obj `if test -f 'indexer/compressor.c'; then $(CYGPATH_W) 'indexer/compressor.c'; else $(CYGPATH_W) '$(srcdir)/indexer/compressor.c'; fi`
+
+chronicle_indexer-database_write.o: indexer/database_write.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_indexer_CFLAGS) $(CFLAGS) -MT chronicle_indexer-database_write.o -MD -MP -MF "$(DEPDIR)/chronicle_indexer-database_write.Tpo" -c -o chronicle_indexer-database_write.o `test -f 'indexer/database_write.c' || echo '$(srcdir)/'`indexer/database_write.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/chronicle_indexer-database_write.Tpo" "$(DEPDIR)/chronicle_indexer-database_write.Po"; else rm -f "$(DEPDIR)/chronicle_indexer-database_write.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='indexer/database_write.c' object='chronicle_indexer-database_write.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_indexer_CFLAGS) $(CFLAGS) -c -o chronicle_indexer-database_write.o `test -f 'indexer/database_write.c' || echo '$(srcdir)/'`indexer/database_write.c
+
+chronicle_indexer-database_write.obj: indexer/database_write.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_indexer_CFLAGS) $(CFLAGS) -MT chronicle_indexer-database_write.obj -MD -MP -MF "$(DEPDIR)/chronicle_indexer-database_write.Tpo" -c -o chronicle_indexer-database_write.obj `if test -f 'indexer/database_write.c'; then $(CYGPATH_W) 'indexer/database_write.c'; else $(CYGPATH_W) '$(srcdir)/indexer/database_write.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/chronicle_indexer-database_write.Tpo" "$(DEPDIR)/chronicle_indexer-database_write.Po"; else rm -f "$(DEPDIR)/chronicle_indexer-database_write.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='indexer/database_write.c' object='chronicle_indexer-database_write.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_indexer_CFLAGS) $(CFLAGS) -c -o chronicle_indexer-database_write.obj `if test -f 'indexer/database_write.c'; then $(CYGPATH_W) 'indexer/database_write.c'; else $(CYGPATH_W) '$(srcdir)/indexer/database_write.c'; fi`
+
+chronicle_indexer-effect_map_write.o: indexer/effect_map_write.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_indexer_CFLAGS) $(CFLAGS) -MT chronicle_indexer-effect_map_write.o -MD -MP -MF "$(DEPDIR)/chronicle_indexer-effect_map_write.Tpo" -c -o chronicle_indexer-effect_map_write.o `test -f 'indexer/effect_map_write.c' || echo '$(srcdir)/'`indexer/effect_map_write.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/chronicle_indexer-effect_map_write.Tpo" "$(DEPDIR)/chronicle_indexer-effect_map_write.Po"; else rm -f "$(DEPDIR)/chronicle_indexer-effect_map_write.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='indexer/effect_map_write.c' object='chronicle_indexer-effect_map_write.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_indexer_CFLAGS) $(CFLAGS) -c -o chronicle_indexer-effect_map_write.o `test -f 'indexer/effect_map_write.c' || echo '$(srcdir)/'`indexer/effect_map_write.c
+
+chronicle_indexer-effect_map_write.obj: indexer/effect_map_write.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_indexer_CFLAGS) $(CFLAGS) -MT chronicle_indexer-effect_map_write.obj -MD -MP -MF "$(DEPDIR)/chronicle_indexer-effect_map_write.Tpo" -c -o chronicle_indexer-effect_map_write.obj `if test -f 'indexer/effect_map_write.c'; then $(CYGPATH_W) 'indexer/effect_map_write.c'; else $(CYGPATH_W) '$(srcdir)/indexer/effect_map_write.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/chronicle_indexer-effect_map_write.Tpo" "$(DEPDIR)/chronicle_indexer-effect_map_write.Po"; else rm -f "$(DEPDIR)/chronicle_indexer-effect_map_write.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='indexer/effect_map_write.c' object='chronicle_indexer-effect_map_write.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_indexer_CFLAGS) $(CFLAGS) -c -o chronicle_indexer-effect_map_write.obj `if test -f 'indexer/effect_map_write.c'; then $(CYGPATH_W) 'indexer/effect_map_write.c'; else $(CYGPATH_W) '$(srcdir)/indexer/effect_map_write.c'; fi`
+
+chronicle_indexer-indexer.o: indexer/indexer.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_indexer_CFLAGS) $(CFLAGS) -MT chronicle_indexer-indexer.o -MD -MP -MF "$(DEPDIR)/chronicle_indexer-indexer.Tpo" -c -o chronicle_indexer-indexer.o `test -f 'indexer/indexer.c' || echo '$(srcdir)/'`indexer/indexer.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/chronicle_indexer-indexer.Tpo" "$(DEPDIR)/chronicle_indexer-indexer.Po"; else rm -f "$(DEPDIR)/chronicle_indexer-indexer.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='indexer/indexer.c' object='chronicle_indexer-indexer.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_indexer_CFLAGS) $(CFLAGS) -c -o chronicle_indexer-indexer.o `test -f 'indexer/indexer.c' || echo '$(srcdir)/'`indexer/indexer.c
+
+chronicle_indexer-indexer.obj: indexer/indexer.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_indexer_CFLAGS) $(CFLAGS) -MT chronicle_indexer-indexer.obj -MD -MP -MF "$(DEPDIR)/chronicle_indexer-indexer.Tpo" -c -o chronicle_indexer-indexer.obj `if test -f 'indexer/indexer.c'; then $(CYGPATH_W) 'indexer/indexer.c'; else $(CYGPATH_W) '$(srcdir)/indexer/indexer.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/chronicle_indexer-indexer.Tpo" "$(DEPDIR)/chronicle_indexer-indexer.Po"; else rm -f "$(DEPDIR)/chronicle_indexer-indexer.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='indexer/indexer.c' object='chronicle_indexer-indexer.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_indexer_CFLAGS) $(CFLAGS) -c -o chronicle_indexer-indexer.obj `if test -f 'indexer/indexer.c'; then $(CYGPATH_W) 'indexer/indexer.c'; else $(CYGPATH_W) '$(srcdir)/indexer/indexer.c'; fi`
+
 chronicle_ppc32_linux-main.o: main.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(chronicle_ppc32_linux_CPPFLAGS) $(CPPFLAGS) $(chronicle_ppc32_linux_CFLAGS) $(CFLAGS) -MT chronicle_ppc32_linux-main.o -MD -MP -MF "$(DEPDIR)/chronicle_ppc32_linux-main.Tpo" -c -o chronicle_ppc32_linux-main.o `test -f 'main.c' || echo '$(srcdir)/'`main.c; \
 @am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/chronicle_ppc32_linux-main.Tpo" "$(DEPDIR)/chronicle_ppc32_linux-main.Po"; else rm -f "$(DEPDIR)/chronicle_ppc32_linux-main.Tpo"; exit 1; fi
@@ -600,6 +813,174 @@ chronicle_ppc32_linux-main.obj: main.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='main.c' object='chronicle_ppc32_linux-main.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(chronicle_ppc32_linux_CPPFLAGS) $(CPPFLAGS) $(chronicle_ppc32_linux_CFLAGS) $(CFLAGS) -c -o chronicle_ppc32_linux-main.obj `if test -f 'main.c'; then $(CYGPATH_W) 'main.c'; else $(CYGPATH_W) '$(srcdir)/main.c'; fi`
+
+chronicle_query-util.o: base/util.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_query_CFLAGS) $(CFLAGS) -MT chronicle_query-util.o -MD -MP -MF "$(DEPDIR)/chronicle_query-util.Tpo" -c -o chronicle_query-util.o `test -f 'base/util.c' || echo '$(srcdir)/'`base/util.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/chronicle_query-util.Tpo" "$(DEPDIR)/chronicle_query-util.Po"; else rm -f "$(DEPDIR)/chronicle_query-util.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='base/util.c' object='chronicle_query-util.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_query_CFLAGS) $(CFLAGS) -c -o chronicle_query-util.o `test -f 'base/util.c' || echo '$(srcdir)/'`base/util.c
+
+chronicle_query-util.obj: base/util.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_query_CFLAGS) $(CFLAGS) -MT chronicle_query-util.obj -MD -MP -MF "$(DEPDIR)/chronicle_query-util.Tpo" -c -o chronicle_query-util.obj `if test -f 'base/util.c'; then $(CYGPATH_W) 'base/util.c'; else $(CYGPATH_W) '$(srcdir)/base/util.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/chronicle_query-util.Tpo" "$(DEPDIR)/chronicle_query-util.Po"; else rm -f "$(DEPDIR)/chronicle_query-util.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='base/util.c' object='chronicle_query-util.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_query_CFLAGS) $(CFLAGS) -c -o chronicle_query-util.obj `if test -f 'base/util.c'; then $(CYGPATH_W) 'base/util.c'; else $(CYGPATH_W) '$(srcdir)/base/util.c'; fi`
+
+chronicle_query-thread_util.o: base/thread_util.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_query_CFLAGS) $(CFLAGS) -MT chronicle_query-thread_util.o -MD -MP -MF "$(DEPDIR)/chronicle_query-thread_util.Tpo" -c -o chronicle_query-thread_util.o `test -f 'base/thread_util.c' || echo '$(srcdir)/'`base/thread_util.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/chronicle_query-thread_util.Tpo" "$(DEPDIR)/chronicle_query-thread_util.Po"; else rm -f "$(DEPDIR)/chronicle_query-thread_util.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='base/thread_util.c' object='chronicle_query-thread_util.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_query_CFLAGS) $(CFLAGS) -c -o chronicle_query-thread_util.o `test -f 'base/thread_util.c' || echo '$(srcdir)/'`base/thread_util.c
+
+chronicle_query-thread_util.obj: base/thread_util.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_query_CFLAGS) $(CFLAGS) -MT chronicle_query-thread_util.obj -MD -MP -MF "$(DEPDIR)/chronicle_query-thread_util.Tpo" -c -o chronicle_query-thread_util.obj `if test -f 'base/thread_util.c'; then $(CYGPATH_W) 'base/thread_util.c'; else $(CYGPATH_W) '$(srcdir)/base/thread_util.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/chronicle_query-thread_util.Tpo" "$(DEPDIR)/chronicle_query-thread_util.Po"; else rm -f "$(DEPDIR)/chronicle_query-thread_util.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='base/thread_util.c' object='chronicle_query-thread_util.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_query_CFLAGS) $(CFLAGS) -c -o chronicle_query-thread_util.obj `if test -f 'base/thread_util.c'; then $(CYGPATH_W) 'base/thread_util.c'; else $(CYGPATH_W) '$(srcdir)/base/thread_util.c'; fi`
+
+chronicle_query-json.o: base/json.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_query_CFLAGS) $(CFLAGS) -MT chronicle_query-json.o -MD -MP -MF "$(DEPDIR)/chronicle_query-json.Tpo" -c -o chronicle_query-json.o `test -f 'base/json.c' || echo '$(srcdir)/'`base/json.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/chronicle_query-json.Tpo" "$(DEPDIR)/chronicle_query-json.Po"; else rm -f "$(DEPDIR)/chronicle_query-json.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='base/json.c' object='chronicle_query-json.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_query_CFLAGS) $(CFLAGS) -c -o chronicle_query-json.o `test -f 'base/json.c' || echo '$(srcdir)/'`base/json.c
+
+chronicle_query-json.obj: base/json.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_query_CFLAGS) $(CFLAGS) -MT chronicle_query-json.obj -MD -MP -MF "$(DEPDIR)/chronicle_query-json.Tpo" -c -o chronicle_query-json.obj `if test -f 'base/json.c'; then $(CYGPATH_W) 'base/json.c'; else $(CYGPATH_W) '$(srcdir)/base/json.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/chronicle_query-json.Tpo" "$(DEPDIR)/chronicle_query-json.Po"; else rm -f "$(DEPDIR)/chronicle_query-json.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='base/json.c' object='chronicle_query-json.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_query_CFLAGS) $(CFLAGS) -c -o chronicle_query-json.obj `if test -f 'base/json.c'; then $(CYGPATH_W) 'base/json.c'; else $(CYGPATH_W) '$(srcdir)/base/json.c'; fi`
+
+chronicle_query-database_read.o: query/database_read.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_query_CFLAGS) $(CFLAGS) -MT chronicle_query-database_read.o -MD -MP -MF "$(DEPDIR)/chronicle_query-database_read.Tpo" -c -o chronicle_query-database_read.o `test -f 'query/database_read.c' || echo '$(srcdir)/'`query/database_read.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/chronicle_query-database_read.Tpo" "$(DEPDIR)/chronicle_query-database_read.Po"; else rm -f "$(DEPDIR)/chronicle_query-database_read.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='query/database_read.c' object='chronicle_query-database_read.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_query_CFLAGS) $(CFLAGS) -c -o chronicle_query-database_read.o `test -f 'query/database_read.c' || echo '$(srcdir)/'`query/database_read.c
+
+chronicle_query-database_read.obj: query/database_read.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_query_CFLAGS) $(CFLAGS) -MT chronicle_query-database_read.obj -MD -MP -MF "$(DEPDIR)/chronicle_query-database_read.Tpo" -c -o chronicle_query-database_read.obj `if test -f 'query/database_read.c'; then $(CYGPATH_W) 'query/database_read.c'; else $(CYGPATH_W) '$(srcdir)/query/database_read.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/chronicle_query-database_read.Tpo" "$(DEPDIR)/chronicle_query-database_read.Po"; else rm -f "$(DEPDIR)/chronicle_query-database_read.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='query/database_read.c' object='chronicle_query-database_read.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_query_CFLAGS) $(CFLAGS) -c -o chronicle_query-database_read.obj `if test -f 'query/database_read.c'; then $(CYGPATH_W) 'query/database_read.c'; else $(CYGPATH_W) '$(srcdir)/query/database_read.c'; fi`
+
+chronicle_query-debug.o: query/debug.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_query_CFLAGS) $(CFLAGS) -MT chronicle_query-debug.o -MD -MP -MF "$(DEPDIR)/chronicle_query-debug.Tpo" -c -o chronicle_query-debug.o `test -f 'query/debug.c' || echo '$(srcdir)/'`query/debug.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/chronicle_query-debug.Tpo" "$(DEPDIR)/chronicle_query-debug.Po"; else rm -f "$(DEPDIR)/chronicle_query-debug.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='query/debug.c' object='chronicle_query-debug.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_query_CFLAGS) $(CFLAGS) -c -o chronicle_query-debug.o `test -f 'query/debug.c' || echo '$(srcdir)/'`query/debug.c
+
+chronicle_query-debug.obj: query/debug.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_query_CFLAGS) $(CFLAGS) -MT chronicle_query-debug.obj -MD -MP -MF "$(DEPDIR)/chronicle_query-debug.Tpo" -c -o chronicle_query-debug.obj `if test -f 'query/debug.c'; then $(CYGPATH_W) 'query/debug.c'; else $(CYGPATH_W) '$(srcdir)/query/debug.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/chronicle_query-debug.Tpo" "$(DEPDIR)/chronicle_query-debug.Po"; else rm -f "$(DEPDIR)/chronicle_query-debug.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='query/debug.c' object='chronicle_query-debug.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_query_CFLAGS) $(CFLAGS) -c -o chronicle_query-debug.obj `if test -f 'query/debug.c'; then $(CYGPATH_W) 'query/debug.c'; else $(CYGPATH_W) '$(srcdir)/query/debug.c'; fi`
+
+chronicle_query-debug_dwarf2.o: query/debug_dwarf2.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_query_CFLAGS) $(CFLAGS) -MT chronicle_query-debug_dwarf2.o -MD -MP -MF "$(DEPDIR)/chronicle_query-debug_dwarf2.Tpo" -c -o chronicle_query-debug_dwarf2.o `test -f 'query/debug_dwarf2.c' || echo '$(srcdir)/'`query/debug_dwarf2.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/chronicle_query-debug_dwarf2.Tpo" "$(DEPDIR)/chronicle_query-debug_dwarf2.Po"; else rm -f "$(DEPDIR)/chronicle_query-debug_dwarf2.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='query/debug_dwarf2.c' object='chronicle_query-debug_dwarf2.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_query_CFLAGS) $(CFLAGS) -c -o chronicle_query-debug_dwarf2.o `test -f 'query/debug_dwarf2.c' || echo '$(srcdir)/'`query/debug_dwarf2.c
+
+chronicle_query-debug_dwarf2.obj: query/debug_dwarf2.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_query_CFLAGS) $(CFLAGS) -MT chronicle_query-debug_dwarf2.obj -MD -MP -MF "$(DEPDIR)/chronicle_query-debug_dwarf2.Tpo" -c -o chronicle_query-debug_dwarf2.obj `if test -f 'query/debug_dwarf2.c'; then $(CYGPATH_W) 'query/debug_dwarf2.c'; else $(CYGPATH_W) '$(srcdir)/query/debug_dwarf2.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/chronicle_query-debug_dwarf2.Tpo" "$(DEPDIR)/chronicle_query-debug_dwarf2.Po"; else rm -f "$(DEPDIR)/chronicle_query-debug_dwarf2.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='query/debug_dwarf2.c' object='chronicle_query-debug_dwarf2.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_query_CFLAGS) $(CFLAGS) -c -o chronicle_query-debug_dwarf2.obj `if test -f 'query/debug_dwarf2.c'; then $(CYGPATH_W) 'query/debug_dwarf2.c'; else $(CYGPATH_W) '$(srcdir)/query/debug_dwarf2.c'; fi`
+
+chronicle_query-decompression_cache.o: query/decompression_cache.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_query_CFLAGS) $(CFLAGS) -MT chronicle_query-decompression_cache.o -MD -MP -MF "$(DEPDIR)/chronicle_query-decompression_cache.Tpo" -c -o chronicle_query-decompression_cache.o `test -f 'query/decompression_cache.c' || echo '$(srcdir)/'`query/decompression_cache.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/chronicle_query-decompression_cache.Tpo" "$(DEPDIR)/chronicle_query-decompression_cache.Po"; else rm -f "$(DEPDIR)/chronicle_query-decompression_cache.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='query/decompression_cache.c' object='chronicle_query-decompression_cache.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_query_CFLAGS) $(CFLAGS) -c -o chronicle_query-decompression_cache.o `test -f 'query/decompression_cache.c' || echo '$(srcdir)/'`query/decompression_cache.c
+
+chronicle_query-decompression_cache.obj: query/decompression_cache.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_query_CFLAGS) $(CFLAGS) -MT chronicle_query-decompression_cache.obj -MD -MP -MF "$(DEPDIR)/chronicle_query-decompression_cache.Tpo" -c -o chronicle_query-decompression_cache.obj `if test -f 'query/decompression_cache.c'; then $(CYGPATH_W) 'query/decompression_cache.c'; else $(CYGPATH_W) '$(srcdir)/query/decompression_cache.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/chronicle_query-decompression_cache.Tpo" "$(DEPDIR)/chronicle_query-decompression_cache.Po"; else rm -f "$(DEPDIR)/chronicle_query-decompression_cache.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='query/decompression_cache.c' object='chronicle_query-decompression_cache.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_query_CFLAGS) $(CFLAGS) -c -o chronicle_query-decompression_cache.obj `if test -f 'query/decompression_cache.c'; then $(CYGPATH_W) 'query/decompression_cache.c'; else $(CYGPATH_W) '$(srcdir)/query/decompression_cache.c'; fi`
+
+chronicle_query-decompressor.o: query/decompressor.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_query_CFLAGS) $(CFLAGS) -MT chronicle_query-decompressor.o -MD -MP -MF "$(DEPDIR)/chronicle_query-decompressor.Tpo" -c -o chronicle_query-decompressor.o `test -f 'query/decompressor.c' || echo '$(srcdir)/'`query/decompressor.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/chronicle_query-decompressor.Tpo" "$(DEPDIR)/chronicle_query-decompressor.Po"; else rm -f "$(DEPDIR)/chronicle_query-decompressor.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='query/decompressor.c' object='chronicle_query-decompressor.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_query_CFLAGS) $(CFLAGS) -c -o chronicle_query-decompressor.o `test -f 'query/decompressor.c' || echo '$(srcdir)/'`query/decompressor.c
+
+chronicle_query-decompressor.obj: query/decompressor.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_query_CFLAGS) $(CFLAGS) -MT chronicle_query-decompressor.obj -MD -MP -MF "$(DEPDIR)/chronicle_query-decompressor.Tpo" -c -o chronicle_query-decompressor.obj `if test -f 'query/decompressor.c'; then $(CYGPATH_W) 'query/decompressor.c'; else $(CYGPATH_W) '$(srcdir)/query/decompressor.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/chronicle_query-decompressor.Tpo" "$(DEPDIR)/chronicle_query-decompressor.Po"; else rm -f "$(DEPDIR)/chronicle_query-decompressor.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='query/decompressor.c' object='chronicle_query-decompressor.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_query_CFLAGS) $(CFLAGS) -c -o chronicle_query-decompressor.obj `if test -f 'query/decompressor.c'; then $(CYGPATH_W) 'query/decompressor.c'; else $(CYGPATH_W) '$(srcdir)/query/decompressor.c'; fi`
+
+chronicle_query-effect_map_read.o: query/effect_map_read.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_query_CFLAGS) $(CFLAGS) -MT chronicle_query-effect_map_read.o -MD -MP -MF "$(DEPDIR)/chronicle_query-effect_map_read.Tpo" -c -o chronicle_query-effect_map_read.o `test -f 'query/effect_map_read.c' || echo '$(srcdir)/'`query/effect_map_read.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/chronicle_query-effect_map_read.Tpo" "$(DEPDIR)/chronicle_query-effect_map_read.Po"; else rm -f "$(DEPDIR)/chronicle_query-effect_map_read.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='query/effect_map_read.c' object='chronicle_query-effect_map_read.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_query_CFLAGS) $(CFLAGS) -c -o chronicle_query-effect_map_read.o `test -f 'query/effect_map_read.c' || echo '$(srcdir)/'`query/effect_map_read.c
+
+chronicle_query-effect_map_read.obj: query/effect_map_read.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_query_CFLAGS) $(CFLAGS) -MT chronicle_query-effect_map_read.obj -MD -MP -MF "$(DEPDIR)/chronicle_query-effect_map_read.Tpo" -c -o chronicle_query-effect_map_read.obj `if test -f 'query/effect_map_read.c'; then $(CYGPATH_W) 'query/effect_map_read.c'; else $(CYGPATH_W) '$(srcdir)/query/effect_map_read.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/chronicle_query-effect_map_read.Tpo" "$(DEPDIR)/chronicle_query-effect_map_read.Po"; else rm -f "$(DEPDIR)/chronicle_query-effect_map_read.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='query/effect_map_read.c' object='chronicle_query-effect_map_read.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_query_CFLAGS) $(CFLAGS) -c -o chronicle_query-effect_map_read.obj `if test -f 'query/effect_map_read.c'; then $(CYGPATH_W) 'query/effect_map_read.c'; else $(CYGPATH_W) '$(srcdir)/query/effect_map_read.c'; fi`
+
+chronicle_query-memory_map.o: query/memory_map.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_query_CFLAGS) $(CFLAGS) -MT chronicle_query-memory_map.o -MD -MP -MF "$(DEPDIR)/chronicle_query-memory_map.Tpo" -c -o chronicle_query-memory_map.o `test -f 'query/memory_map.c' || echo '$(srcdir)/'`query/memory_map.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/chronicle_query-memory_map.Tpo" "$(DEPDIR)/chronicle_query-memory_map.Po"; else rm -f "$(DEPDIR)/chronicle_query-memory_map.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='query/memory_map.c' object='chronicle_query-memory_map.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_query_CFLAGS) $(CFLAGS) -c -o chronicle_query-memory_map.o `test -f 'query/memory_map.c' || echo '$(srcdir)/'`query/memory_map.c
+
+chronicle_query-memory_map.obj: query/memory_map.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_query_CFLAGS) $(CFLAGS) -MT chronicle_query-memory_map.obj -MD -MP -MF "$(DEPDIR)/chronicle_query-memory_map.Tpo" -c -o chronicle_query-memory_map.obj `if test -f 'query/memory_map.c'; then $(CYGPATH_W) 'query/memory_map.c'; else $(CYGPATH_W) '$(srcdir)/query/memory_map.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/chronicle_query-memory_map.Tpo" "$(DEPDIR)/chronicle_query-memory_map.Po"; else rm -f "$(DEPDIR)/chronicle_query-memory_map.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='query/memory_map.c' object='chronicle_query-memory_map.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_query_CFLAGS) $(CFLAGS) -c -o chronicle_query-memory_map.obj `if test -f 'query/memory_map.c'; then $(CYGPATH_W) 'query/memory_map.c'; else $(CYGPATH_W) '$(srcdir)/query/memory_map.c'; fi`
+
+chronicle_query-query.o: query/query.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_query_CFLAGS) $(CFLAGS) -MT chronicle_query-query.o -MD -MP -MF "$(DEPDIR)/chronicle_query-query.Tpo" -c -o chronicle_query-query.o `test -f 'query/query.c' || echo '$(srcdir)/'`query/query.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/chronicle_query-query.Tpo" "$(DEPDIR)/chronicle_query-query.Po"; else rm -f "$(DEPDIR)/chronicle_query-query.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='query/query.c' object='chronicle_query-query.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_query_CFLAGS) $(CFLAGS) -c -o chronicle_query-query.o `test -f 'query/query.c' || echo '$(srcdir)/'`query/query.c
+
+chronicle_query-query.obj: query/query.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_query_CFLAGS) $(CFLAGS) -MT chronicle_query-query.obj -MD -MP -MF "$(DEPDIR)/chronicle_query-query.Tpo" -c -o chronicle_query-query.obj `if test -f 'query/query.c'; then $(CYGPATH_W) 'query/query.c'; else $(CYGPATH_W) '$(srcdir)/query/query.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/chronicle_query-query.Tpo" "$(DEPDIR)/chronicle_query-query.Po"; else rm -f "$(DEPDIR)/chronicle_query-query.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='query/query.c' object='chronicle_query-query.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_query_CFLAGS) $(CFLAGS) -c -o chronicle_query-query.obj `if test -f 'query/query.c'; then $(CYGPATH_W) 'query/query.c'; else $(CYGPATH_W) '$(srcdir)/query/query.c'; fi`
+
+chronicle_query-reg_reconstruct.o: query/reg_reconstruct.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_query_CFLAGS) $(CFLAGS) -MT chronicle_query-reg_reconstruct.o -MD -MP -MF "$(DEPDIR)/chronicle_query-reg_reconstruct.Tpo" -c -o chronicle_query-reg_reconstruct.o `test -f 'query/reg_reconstruct.c' || echo '$(srcdir)/'`query/reg_reconstruct.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/chronicle_query-reg_reconstruct.Tpo" "$(DEPDIR)/chronicle_query-reg_reconstruct.Po"; else rm -f "$(DEPDIR)/chronicle_query-reg_reconstruct.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='query/reg_reconstruct.c' object='chronicle_query-reg_reconstruct.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_query_CFLAGS) $(CFLAGS) -c -o chronicle_query-reg_reconstruct.o `test -f 'query/reg_reconstruct.c' || echo '$(srcdir)/'`query/reg_reconstruct.c
+
+chronicle_query-reg_reconstruct.obj: query/reg_reconstruct.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_query_CFLAGS) $(CFLAGS) -MT chronicle_query-reg_reconstruct.obj -MD -MP -MF "$(DEPDIR)/chronicle_query-reg_reconstruct.Tpo" -c -o chronicle_query-reg_reconstruct.obj `if test -f 'query/reg_reconstruct.c'; then $(CYGPATH_W) 'query/reg_reconstruct.c'; else $(CYGPATH_W) '$(srcdir)/query/reg_reconstruct.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/chronicle_query-reg_reconstruct.Tpo" "$(DEPDIR)/chronicle_query-reg_reconstruct.Po"; else rm -f "$(DEPDIR)/chronicle_query-reg_reconstruct.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='query/reg_reconstruct.c' object='chronicle_query-reg_reconstruct.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(chronicle_query_CFLAGS) $(CFLAGS) -c -o chronicle_query-reg_reconstruct.obj `if test -f 'query/reg_reconstruct.c'; then $(CYGPATH_W) 'query/reg_reconstruct.c'; else $(CYGPATH_W) '$(srcdir)/query/reg_reconstruct.c'; fi`
 
 chronicle_x86_linux-main.o: main.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(chronicle_x86_linux_CPPFLAGS) $(CPPFLAGS) $(chronicle_x86_linux_CFLAGS) $(CFLAGS) -MT chronicle_x86_linux-main.o -MD -MP -MF "$(DEPDIR)/chronicle_x86_linux-main.Tpo" -c -o chronicle_x86_linux-main.o `test -f 'main.c' || echo '$(srcdir)/'`main.c; \
@@ -796,6 +1177,9 @@ check: check-recursive
 all-am: Makefile $(PROGRAMS) all-local
 installdirs: installdirs-recursive
 installdirs-am:
+	for dir in "$(DESTDIR)$(bindir)"; do \
+	  test -z "$$dir" || $(mkdir_p) "$$dir"; \
+	done
 install: install-recursive
 install-exec: install-exec-recursive
 install-data: install-data-recursive
@@ -822,7 +1206,8 @@ maintainer-clean-generic:
 	@echo "it deletes files that may require special tools to rebuild."
 clean: clean-recursive
 
-clean-am: clean-generic clean-noinstPROGRAMS mostlyclean-am
+clean-am: clean-binPROGRAMS clean-generic clean-noinstPROGRAMS \
+	mostlyclean-am
 
 distclean: distclean-recursive
 	-rm -rf ./$(DEPDIR)
@@ -842,7 +1227,7 @@ info-am:
 
 install-data-am:
 
-install-exec-am: install-exec-local
+install-exec-am: install-binPROGRAMS install-exec-local
 
 install-info: install-info-recursive
 
@@ -867,23 +1252,24 @@ ps: ps-recursive
 
 ps-am:
 
-uninstall-am: uninstall-info-am
+uninstall-am: uninstall-binPROGRAMS uninstall-info-am
 
 uninstall-info: uninstall-info-recursive
 
 .PHONY: $(RECURSIVE_TARGETS) CTAGS GTAGS all all-am all-local check \
-	check-am clean clean-generic clean-noinstPROGRAMS \
-	clean-recursive ctags ctags-recursive distclean \
-	distclean-compile distclean-generic distclean-recursive \
-	distclean-tags distdir dvi dvi-am html html-am info info-am \
-	install install-am install-data install-data-am install-exec \
-	install-exec-am install-exec-local install-info \
-	install-info-am install-man install-strip installcheck \
-	installcheck-am installdirs installdirs-am maintainer-clean \
-	maintainer-clean-generic maintainer-clean-recursive \
-	mostlyclean mostlyclean-compile mostlyclean-generic \
-	mostlyclean-recursive pdf pdf-am ps ps-am tags tags-recursive \
-	uninstall uninstall-am uninstall-info-am
+	check-am clean clean-binPROGRAMS clean-generic \
+	clean-noinstPROGRAMS clean-recursive ctags ctags-recursive \
+	distclean distclean-compile distclean-generic \
+	distclean-recursive distclean-tags distdir dvi dvi-am html \
+	html-am info info-am install install-am install-binPROGRAMS \
+	install-data install-data-am install-exec install-exec-am \
+	install-exec-local install-info install-info-am install-man \
+	install-strip installcheck installcheck-am installdirs \
+	installdirs-am maintainer-clean maintainer-clean-generic \
+	maintainer-clean-recursive mostlyclean mostlyclean-compile \
+	mostlyclean-generic mostlyclean-recursive pdf pdf-am ps ps-am \
+	tags tags-recursive uninstall uninstall-am \
+	uninstall-binPROGRAMS uninstall-info-am
 
 
 # The kludge that passes for vex's build system can't handle parallel

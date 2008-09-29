@@ -432,9 +432,10 @@ static int get_end_of(JSON_Builder* builder, int index) {
 
 void JSON_builder_init_copy_part(JSON_Builder* builder, JSON_Builder* source,
                                  int* index) {
-  JSON_builder_init(builder);
   int i = *index;
   int end = get_end_of(source, i);
+
+  JSON_builder_init(builder);
   while (i < end - 1) {
     append_value(builder, (JSON_Value*)source->buf.data + i);
     ++i;

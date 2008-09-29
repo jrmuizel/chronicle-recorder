@@ -28,8 +28,6 @@
 
 #include <stdint.h>
 
-#include "compressor.h"
-
 /*
  * These functions are used to read and decompress a region of data from
  * the database. They can be implemented to cache the results of

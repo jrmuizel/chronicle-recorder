@@ -24,7 +24,6 @@
 */
 
 #include "decompressor.h"
-#include "compressor.h"
 #include "config.h"
 #include "util.h"
 

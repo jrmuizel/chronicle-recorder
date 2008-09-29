@@ -284,7 +284,7 @@ extern SysRes VG_(am_sbrk_anon_float_valgrind)( SizeT cszB );
    segment array accordingly.  This is used by V for transiently
    mapping in object files to read their debug info.  */
 extern SysRes VG_(am_mmap_file_float_valgrind)
-   ( SizeT length, UInt prot, Int fd, Off64T offset );
+   ( SizeT length, UInt prot, Bool shared, Int fd, Off64T offset );
 
 /* Unmap the given address range and update the segment array
    accordingly.  This fails if the range isn't valid for the client.

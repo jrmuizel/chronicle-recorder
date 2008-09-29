@@ -267,36 +267,37 @@ Char **VG_(env_clone) ( Char **oldenv )
    return newenv;
 }
 
+void VG_(execv) ( Char* filename, Char** argv )
+{
+   Char** envp;
+   SysRes res;
+
+   /* restore the DATA rlimit for the child */
+   VG_(setrlimit)(VKI_RLIMIT_DATA, &VG_(client_rlimit_data));
+
+   envp = VG_(env_clone)(VG_(client_envp));
+   VG_(env_remove_valgrind_env_stuff)( envp );
+
+   res = VG_(do_syscall3)(__NR_execve,
+                          (UWord)filename, (UWord)argv, (UWord)envp);
+
+   VG_(printf)("EXEC failed, errno = %d\n", res.res);
+}
+
 /* Return -1 if error, else 0.  NOTE does not indicate return code of
    child! */
 Int VG_(system) ( Char* cmd )
 {
-   Int    pid;
-   SysRes res;
+   Int pid;
    if (cmd == NULL)
       return 1;
-   res = VG_(do_syscall0)(__NR_fork);
-   if (res.isError)
+   pid = VG_(fork)();
+   if (pid < 0)
       return -1;
-   pid = res.res;
    if (pid == 0) {
       /* child */
-      static Char** envp = NULL;
-      Char* argv[4];
-
-      /* restore the DATA rlimit for the child */
-      VG_(setrlimit)(VKI_RLIMIT_DATA, &VG_(client_rlimit_data));
-
-      envp = VG_(env_clone)(VG_(client_envp));
-      VG_(env_remove_valgrind_env_stuff)( envp ); 
-
-      argv[0] = "/bin/sh";
-      argv[1] = "-c";
-      argv[2] = cmd;
-      argv[3] = 0;
-
-      (void)VG_(do_syscall3)(__NR_execve, 
-                             (UWord)"/bin/sh", (UWord)argv, (UWord)envp);
+      Char* argv[4] = { "/bin/sh", "-c", cmd, 0 };
+      VG_(execv)(argv[0], argv);
 
       /* If we're still alive here, execve failed. */
       VG_(exit)(1);
@@ -553,27 +554,30 @@ UInt VG_(read_millisecond_timer) ( void )
    return (now - base) / 1000;
 }
 
-/* ---------------------------------------------------------------------
-   A trivial atfork() facility for Valgrind's internal use
-   ------------------------------------------------------------------ */
-
-// Trivial because it only supports a single post-fork child action, which
-// is all we need.
-
-static vg_atfork_t atfork_child = NULL;
+#define MAX_ATFORK_CHILD 4
+static vg_atfork_t atfork_child_list[MAX_ATFORK_CHILD];
 
 void VG_(atfork_child)(vg_atfork_t child)
 {
-   if (NULL != atfork_child)
-      VG_(core_panic)("More than one atfork_child handler requested");
+   Int i;
+   for (i = 0; i < MAX_ATFORK_CHILD; ++i) {
+      if (NULL == atfork_child_list[i]) {
+         atfork_child_list[i] = child;
+         return;
+      }
+   }
 
-   atfork_child = child;
+   VG_(core_panic)("Too many atfork_child handlers requested");
 }
 
 void VG_(do_atfork_child)(ThreadId tid)
 {
-   if (NULL != atfork_child)
-      (*atfork_child)(tid);
+   Int i;
+   for (i = 0; i < MAX_ATFORK_CHILD; ++i) {
+      if (NULL != atfork_child_list[i]) {
+        atfork_child_list[i](tid);
+      }
+   }
 }
 
 /*--------------------------------------------------------------------*/

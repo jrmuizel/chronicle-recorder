@@ -1,4 +1,5 @@
-VALGRIND = valgrind-3.2.3
+VALGRIND = valgrind-3.3.1
+
 BASE_OBJS = \
 	base/thread_util.o \
 	base/util.o \

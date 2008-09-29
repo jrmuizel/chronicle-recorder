@@ -314,6 +314,10 @@ static Addr aspacem_cStart = 0;
 // Where aspacem will start looking for Valgrind space
 static Addr aspacem_vStart = 0;
 
+/* Address space change notification hook */
+static am_change_hook change_hook;
+static void *change_hook_closure;
+
 
 #define AM_SANITY_CHECK                                      \
    do {                                                      \
@@ -1390,6 +1394,34 @@ void split_nsegments_lo_and_hi ( Addr sLo, Addr sHi,
    /* Not that I'm overly paranoid or anything, definitely not :-) */
 }
 
+/* Notify the tool (if requested) that the address space has changed. */
+
+static void do_change_callback(NSegment* segment,
+                               Addr start, Addr length,
+                               Bool contents_changed,
+                               Bool is_V_to_C_transfer)
+{
+   if (NULL == change_hook)
+      return;
+
+   change_hook(segment, start, length, contents_changed, is_V_to_C_transfer,
+               change_hook_closure);
+}
+
+static void do_change_all_callback(NSegment* segment,
+                                   Bool contents_changed,
+                                   Bool is_V_to_C_transfer)
+{
+   do_change_callback(segment, 0, segment->end - segment->start + 1,
+                      contents_changed, is_V_to_C_transfer);
+}
+
+void VG_(am_set_change_hook)(am_change_hook hook, void *closure)
+{
+   change_hook = hook;
+   change_hook_closure = closure;
+}
+
 
 /* Add SEG to the collection, deleting/truncating any it overlaps.
    This deals with all the tricky cases of splitting up segments as
@@ -1425,6 +1457,8 @@ static void add_segment ( NSegment* seg )
    }
 
    nsegments[iLo] = *seg;
+
+   do_change_all_callback( seg, True, False );
 
    (void)preen_nsegments();
    if (0) VG_(am_show_nsegments)(0,"AFTER preen (add_segment)");
@@ -1987,6 +2021,7 @@ Bool VG_(am_notify_mprotect)( Addr start, SizeT len, UInt prot )
             nsegments[i].hasW = newW;
             nsegments[i].hasX = newX;
             aspacem_assert(sane_NSegment(&nsegments[i]));
+            do_change_all_callback(&nsegments[i], False, False);
             break;
          default:
             break;
@@ -2339,7 +2374,8 @@ SysRes VG_(am_sbrk_anon_float_valgrind)( SizeT cszB )
    segment array accordingly.  This is used by V for transiently
    mapping in object files to read their debug info.  */
 
-SysRes VG_(am_mmap_file_float_valgrind) ( SizeT length, UInt prot, 
+SysRes VG_(am_mmap_file_float_valgrind) ( SizeT length, UInt prot,
+                                          Bool shared,
                                           Int fd, Off64T offset )
 {
    SysRes     sres;
@@ -2349,6 +2385,7 @@ SysRes VG_(am_mmap_file_float_valgrind) ( SizeT length, UInt prot,
    MapRequest req;
    UWord      dev, ino;
    UInt       mode;
+   UInt       flags;
    HChar      buf[VKI_PATH_MAX];
  
    /* Not allowable. */
@@ -2359,16 +2396,17 @@ SysRes VG_(am_mmap_file_float_valgrind) ( SizeT length, UInt prot,
    req.rkind = MAny;
    req.start = 0;
    req.len   = length;
-   advised = VG_(am_get_advisory)( &req, True/*client*/, &ok );
+   advised = VG_(am_get_advisory)( &req, False/*valgrind*/, &ok );
    if (!ok)
       return VG_(mk_SysRes_Error)( VKI_EINVAL );
 
    /* We have been advised that the mapping is allowable at the
       specified address.  So hand it off to the kernel, and propagate
       any resulting failure immediately. */
+   flags = VKI_MAP_FIXED;
+   flags |= shared ? VKI_MAP_SHARED : VKI_MAP_PRIVATE;
    sres = VG_(am_do_mmap_NO_NOTIFY)( 
-             advised, length, prot, 
-             VKI_MAP_FIXED|VKI_MAP_PRIVATE, 
+             advised, length, prot, flags, 
              fd, offset 
           );
    if (sres.isError)
@@ -2403,6 +2441,12 @@ SysRes VG_(am_mmap_file_float_valgrind) ( SizeT length, UInt prot,
 
    AM_SANITY_CHECK;
    return sres;
+}
+
+void* VG_(am_mmap_file)(SizeT size, UInt prot, Bool shared, Int fd, Off64T offset)
+{
+   SysRes sres = VG_(am_mmap_file_float_valgrind)( size, prot, shared, fd, offset );
+   return sres.isError ? NULL : (void*)sres.res;
 }
 
 
@@ -2516,6 +2560,7 @@ Bool VG_(am_change_ownership_v_to_c)( Addr start, SizeT len )
       case SkAnonV: nsegments[iLo].kind = SkAnonC; break;
       default: aspacem_assert(0); /* can't happen - guarded above */
    }
+   do_change_all_callback(&nsegments[iLo], True, True);
 
    preen_nsegments();
    return True;
@@ -2650,6 +2695,7 @@ Bool VG_(am_extend_into_adjacent_reservation_client) ( NSegment* seg,
    aspacem_assert(VG_IS_PAGE_ALIGNED(delta<0 ? -delta : delta));
 
    if (delta > 0) {
+      Addr start;
 
       /* Extending the segment forwards. */
       segR = segA+1;
@@ -2660,10 +2706,11 @@ Bool VG_(am_extend_into_adjacent_reservation_client) ( NSegment* seg,
           || delta + VKI_PAGE_SIZE 
                 > (nsegments[segR].end - nsegments[segR].start + 1))
         return False;
-        
+
       /* Extend the kernel's mapping. */
+      start = nsegments[segR].start;
       sres = VG_(am_do_mmap_NO_NOTIFY)( 
-                nsegments[segR].start, delta,
+                start, delta,
                 prot,
                 VKI_MAP_FIXED|VKI_MAP_PRIVATE|VKI_MAP_ANONYMOUS, 
                 0, 0 
@@ -2680,6 +2727,9 @@ Bool VG_(am_extend_into_adjacent_reservation_client) ( NSegment* seg,
       nsegments[segR].start += delta;
       nsegments[segA].end += delta;
       aspacem_assert(nsegments[segR].start <= nsegments[segR].end);
+
+      do_change_callback(&nsegments[segA], start - nsegments[segA].start,
+                         delta, True, False);
 
    } else {
 
@@ -2715,6 +2765,8 @@ Bool VG_(am_extend_into_adjacent_reservation_client) ( NSegment* seg,
       nsegments[segR].end -= delta;
       nsegments[segA].start -= delta;
       aspacem_assert(nsegments[segR].start <= nsegments[segR].end);
+
+      do_change_callback(&nsegments[segA], 0, delta, True, False);
 
    }
 

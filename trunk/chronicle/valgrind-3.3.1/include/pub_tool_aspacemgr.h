@@ -132,6 +132,25 @@ typedef
    order to establish a suitably-sized buffer. */
 extern Int VG_(am_get_segment_starts)( Addr* starts, Int nStarts );
 
+/* Interface to allow a tool to receive notifications of changes
+   to address space mappings.
+   
+   We call this callback every time the address space changes.
+   We pass False for 'contents_changed' if we know that the results
+   of reading from memory have not been changed by the address
+   space change.
+   We pass True for 'is_V_to_C_transfer' if this is a transfer of
+   ownership from valgrind to the client.
+   'start' and 'length' describe the region of the segment that is
+   being changed, relative to the segment start address.
+ */
+typedef void (* am_change_hook)(NSegment* seg,
+                                Addr start, Addr length,
+                                Bool contents_changed,
+                                Bool is_V_to_C_transfer,
+                                void* closure);
+extern void VG_(am_set_change_hook)(am_change_hook hook,
+                                    void* closure);
 
 // See pub_core_aspacemgr.h for description.
 extern NSegment const * VG_(am_find_nsegment) ( Addr a ); 
@@ -150,6 +169,10 @@ extern void* VG_(am_shadow_alloc)(SizeT size);
 /* Unmap the given address range and update the segment array
    accordingly.  This fails if the range isn't valid for valgrind. */
 extern SysRes VG_(am_munmap_valgrind)( Addr start, SizeT length );
+
+// See pub_core_aspacemgr.h for description.
+/* Really just a wrapper around VG_(am_mmap_file_float_valgrind). */
+extern void* VG_(am_mmap_file)(SizeT size, UInt prot, Bool shared, Int fd, Off64T offset);
 
 #endif   // __PUB_TOOL_ASPACEMGR_H
 

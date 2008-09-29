@@ -1,2 +1,0 @@
-prog: shell
-stderr_filter: filter_linenos

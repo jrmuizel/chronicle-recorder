@@ -751,7 +751,7 @@ Addr open_debug_file( Char* name, UInt crc, UInt* size )
    *size = stat_buf.st_size;
    
    sres = VG_(am_mmap_file_float_valgrind)
-             ( *size, VKI_PROT_READ, fd.res, 0 );
+             ( *size, VKI_PROT_READ, False, fd.res, 0 );
 
    VG_(close)(fd.res);
    
@@ -848,7 +848,7 @@ Bool ML_(read_elf_debug_info) ( struct _SegInfo* si )
    }
 
    sres = VG_(am_mmap_file_float_valgrind)
-             ( n_oimage, VKI_PROT_READ, fd.res, 0 );
+             ( n_oimage, VKI_PROT_READ, False, fd.res, 0 );
 
    VG_(close)(fd.res);
 

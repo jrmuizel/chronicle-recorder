@@ -14,7 +14,7 @@
    This program is free software; you can redistribute it and/or
    modify it under the terms of the GNU General Public License as
    published by the Free Software Foundation; either version 2 of the
-   License, or (at your option) any later version.
+   License, or (at your option) any later version./
 
    This program is distributed in the hope that it will be useful, but
    WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -1097,6 +1097,9 @@ void* VG_(arena_malloc) ( ArenaId aid, SizeT req_pszB )
    Arena*      a;
    void*       v;
 
+   if (req_pszB == 0)
+     return NULL;
+
    ensure_mm_init(aid);
    a = arenaId_to_ArenaP(aid);
 
@@ -1511,6 +1514,15 @@ void* VG_(arena_realloc) ( ArenaId aid, void* ptr, SizeT req_pszB )
    a = arenaId_to_ArenaP(aid);
 
    vg_assert(req_pszB < MAX_PSZB);
+
+   if (NULL == ptr) {
+      return VG_(arena_malloc)(aid,req_pszB);
+   }
+
+   if (req_pszB == 0) {
+      VG_(arena_free)(aid, ptr);
+      return NULL;
+   }
 
    b = get_payload_block(a, ptr);
    vg_assert(blockSane(a, b));

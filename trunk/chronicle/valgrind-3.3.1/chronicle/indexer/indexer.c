@@ -50,6 +50,7 @@ static const int control_out_fd = 1;
 static int read_trace_from_input = 0;
 static FILE* pretty_print_out = 0;
 static int build_index = 1;
+static int save_database_name = 1;
 static char* save_file = 0;
 static char* db_file = 0;
 
@@ -186,6 +187,9 @@ static void parse_options(int argc, char** argv) {
   argv++, argc--;
   save_file = getenv("CHRONICLE_SAVE");
   db_file = getenv("CHRONICLE_DB");
+  if (getenv("CHRONICLE_NO_SAVE_DATABASE_NAME")) {
+    save_database_name = 0;
+  }
 
   while (argc > 0) {
     if (strcmp(argv[0], "--input") == 0) {
@@ -1460,6 +1464,35 @@ static void allocate_zeroes() {
   memset(zeroes, 0, 1<<16);
 }
 
+/**
+ * Append the database file name to ~/.chronicle-databases. Tools can read that file to see what the latest
+ * Chronicle databases are, so they can offer to automatically open them.
+ */
+static void save_file_name() {
+  char cwd[1024];
+  char* fullpath;
+  char buf[1024];
+  FILE* output;
+
+  if (!save_database_name)
+    return;
+
+  if (!getcwd(cwd, sizeof(cwd)))
+    return;
+  cwd[sizeof(cwd) - 1] = 0;
+
+  fullpath = resolve_file_name(cwd, NULL, db_file);
+
+  snprintf(buf, sizeof(buf), "%s/.chronicle-databases", getenv("HOME"));
+  buf[sizeof(buf) - 1] = 0;
+  output = fopen(buf, "a+");
+  if (!output)
+    return;
+
+  fprintf(output, "%s\n", fullpath);
+  fclose(output);
+}
+
 int main(int argc, char** argv) {
   int i;
 
@@ -1536,6 +1569,8 @@ int main(int argc, char** argv) {
     header_template.effect_map_page_size_bits = CH_EFFECT_MAP_PAGE_SIZE_BITS;
     header_template.end_tstamp = global_tstamp;
     db_close(&db, &header_template);
+
+    save_file_name();
   }
 
   return 0;

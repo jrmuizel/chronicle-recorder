@@ -234,3 +234,26 @@ void canonicalize_pathname(CH_StringBuf* buf) {
     }
   }
 }
+
+const char* resolve_file_name(const char* d1, const char* d2, const char* f) {
+  CH_StringBuf buf;
+
+  if (f[0] == '/')
+    return strdup(f);
+
+  stringbuf_init(&buf);
+  if (d1 && (!d2 || d2[0] != '/')) {
+    stringbuf_append(&buf, d1);
+    stringbuf_append(&buf, "/");
+  }
+  if (d2) {
+    stringbuf_append(&buf, d2);
+    stringbuf_append(&buf, "/");
+  }
+  stringbuf_append(&buf, f);
+  
+  canonicalize_pathname(&buf);
+  
+  return stringbuf_finish(&buf);
+}
+

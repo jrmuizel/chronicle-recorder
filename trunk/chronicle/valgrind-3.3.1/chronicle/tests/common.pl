@@ -137,8 +137,8 @@ sub find_function_calls {
 
 my $test = $0;
 $test =~ s!.check$!!;
-$cmd = "PATH=..:$ENV{PATH} CHRONICLE_DB=$test.db VALGRIND_LIB=../../.in_place ../../coregrind/valgrind --tool=chronicle $test";
-print STDERR "Running $cmd\n";
+$cmd = "PATH=..:$ENV{PATH} CHRONICLE_NO_SAVE_DATABASE_NAME=1 CHRONICLE_DB=$test.db VALGRIND_LIB=../../.in_place ../../coregrind/valgrind --tool=chronicle $test";
+# print STDERR "Running $cmd\n";
 system($cmd);
 
 open(DB, "<$test.db");

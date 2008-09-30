@@ -2,36 +2,13 @@
 
 require 'common.pl';
 
-my @v;
-
 my $sys_bits;
-
-sub find_function_calls {
-  my ($f) = @_;
-  
-  @v = &do_query( { cmd => 'lookupGlobalFunctions', name => $f } );
-  die unless scalar(@v) == 2;
-  die unless $v[0]->{name} eq $f;
-  die unless $v[0]->{entryPoint};
-  die unless $v[0]->{prologueEnd};
-  die unless $v[0]->{beginTStamp};
-  die unless $v[0]->{endTStamp};
-  my $prologueEnd = $v[0]->{prologueEnd};
-  my $begin = $v[0]->{beginTStamp};
-  my $end = $v[0]->{endTStamp};
-  die unless $begin <= $end;
-
-  @v = &do_query( { cmd => 'scan', beginTStamp => $begin,
-                    endTStamp => $end, map => "INSTR_EXEC",
-                    ranges => [ {start => $prologueEnd, length => 1 } ] } );
-  return grep { $_->{type} && $_->{type} eq "normal"; } @v;
-}
 
 sub get_reg_value {
   my ($reg, $tstamp) = @_;
 
-  @v = &do_query( { cmd => 'readReg', TStamp => $tstamp,
-                    $reg => 128 } );
+  my @v = &do_query( { cmd => 'readReg', TStamp => $tstamp,
+                      $reg => 128 } );
   die unless scalar(@v) >= 1;
   my $r = $v[0]->{$reg};
   die unless defined($r);
@@ -51,7 +28,7 @@ sub byteswap_hex {
 sub get_param_value {
   my ($name, $tstamp) = @_;
 
-  @v = &do_query( { cmd => 'getParameters', TStamp => $tstamp } );
+  my @v = &do_query( { cmd => 'getParameters', TStamp => $tstamp } );
   foreach my $v (grep { $_->{name} } @v) {
     if ($v->{name} eq $name) {
       my $valKey = $v->{valKey};
@@ -100,7 +77,7 @@ sub get_param_value {
   die "Variable $name not found";
 }
 
-@v = &do_query( { cmd => 'info' } );
+my @v = &do_query( { cmd => 'info' } );
 die unless scalar(@v) >= 1;
 my $arch = $v[0]->{arch};
 die unless defined($arch);
@@ -127,3 +104,4 @@ die unless scalar(@call2Entry) == 1;
 my $call2SP = &get_reg_value($SPreg, $call2Entry[0]->{TStamp}); 
 
 die unless $call2SP < $call1SP;
+

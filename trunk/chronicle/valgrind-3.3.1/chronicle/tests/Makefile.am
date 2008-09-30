@@ -1,16 +1,15 @@
 check_PROGRAMS = \
     basic-function-calls \
+    feclearexcept \
     fork \
     registers
 
 TESTS = \
     basic-function-calls.check \
+    feclearexcept.check \
     fork.check \
     registers.check
 
-CFLAGS_CHRONICLE_TESTS = -g -O0
-
-basic_function_calls_CFLAGS = $(CFLAGS_CHRONICLE_TESTS)
-fork_CFLAGS = $(CFLAGS_CHRONICLE_TESTS)
-registers_CFLAGS = $(CFLAGS_CHRONICLE_TESTS)
+AM_CFLAGS = -g -O0
+AM_LDFLAGS = -lm
 

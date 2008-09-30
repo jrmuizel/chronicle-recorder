@@ -35,8 +35,8 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-check_PROGRAMS = basic-function-calls$(EXEEXT) fork$(EXEEXT) \
-	registers$(EXEEXT)
+check_PROGRAMS = basic-function-calls$(EXEEXT) feclearexcept$(EXEEXT) \
+	fork$(EXEEXT) registers$(EXEEXT)
 subdir = chronicle/tests
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -47,14 +47,16 @@ mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 basic_function_calls_SOURCES = basic-function-calls.c
-basic_function_calls_OBJECTS =  \
-	basic_function_calls-basic-function-calls.$(OBJEXT)
+basic_function_calls_OBJECTS = basic-function-calls.$(OBJEXT)
 basic_function_calls_LDADD = $(LDADD)
+feclearexcept_SOURCES = feclearexcept.c
+feclearexcept_OBJECTS = feclearexcept.$(OBJEXT)
+feclearexcept_LDADD = $(LDADD)
 fork_SOURCES = fork.c
-fork_OBJECTS = fork-fork.$(OBJEXT)
+fork_OBJECTS = fork.$(OBJEXT)
 fork_LDADD = $(LDADD)
 registers_SOURCES = registers.c
-registers_OBJECTS = registers-registers.$(OBJEXT)
+registers_OBJECTS = registers.$(OBJEXT)
 registers_LDADD = $(LDADD)
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
@@ -63,8 +65,9 @@ COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
-SOURCES = basic-function-calls.c fork.c registers.c
-DIST_SOURCES = basic-function-calls.c fork.c registers.c
+SOURCES = basic-function-calls.c feclearexcept.c fork.c registers.c
+DIST_SOURCES = basic-function-calls.c feclearexcept.c fork.c \
+	registers.c
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -215,13 +218,12 @@ sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 TESTS = \
     basic-function-calls.check \
+    feclearexcept.check \
     fork.check \
     registers.check
 
-CFLAGS_CHRONICLE_TESTS = -g -O0
-basic_function_calls_CFLAGS = $(CFLAGS_CHRONICLE_TESTS)
-fork_CFLAGS = $(CFLAGS_CHRONICLE_TESTS)
-registers_CFLAGS = $(CFLAGS_CHRONICLE_TESTS)
+AM_CFLAGS = -g -O0
+AM_LDFLAGS = -lm
 all: all-am
 
 .SUFFIXES:
@@ -261,6 +263,9 @@ clean-checkPROGRAMS:
 basic-function-calls$(EXEEXT): $(basic_function_calls_OBJECTS) $(basic_function_calls_DEPENDENCIES) 
 	@rm -f basic-function-calls$(EXEEXT)
 	$(LINK) $(basic_function_calls_LDFLAGS) $(basic_function_calls_OBJECTS) $(basic_function_calls_LDADD) $(LIBS)
+feclearexcept$(EXEEXT): $(feclearexcept_OBJECTS) $(feclearexcept_DEPENDENCIES) 
+	@rm -f feclearexcept$(EXEEXT)
+	$(LINK) $(feclearexcept_LDFLAGS) $(feclearexcept_OBJECTS) $(feclearexcept_LDADD) $(LIBS)
 fork$(EXEEXT): $(fork_OBJECTS) $(fork_DEPENDENCIES) 
 	@rm -f fork$(EXEEXT)
 	$(LINK) $(fork_LDFLAGS) $(fork_OBJECTS) $(fork_LDADD) $(LIBS)
@@ -274,9 +279,10 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/basic_function_calls-basic-function-calls.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fork-fork.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/registers-registers.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/basic-function-calls.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/feclearexcept.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fork.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/registers.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	if $(COMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" -c -o $@ $<; \
@@ -291,48 +297,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(COMPILE) -c `$(CYGPATH_W) '$<'`
-
-basic_function_calls-basic-function-calls.o: basic-function-calls.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(basic_function_calls_CFLAGS) $(CFLAGS) -MT basic_function_calls-basic-function-calls.o -MD -MP -MF "$(DEPDIR)/basic_function_calls-basic-function-calls.Tpo" -c -o basic_function_calls-basic-function-calls.o `test -f 'basic-function-calls.c' || echo '$(srcdir)/'`basic-function-calls.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/basic_function_calls-basic-function-calls.Tpo" "$(DEPDIR)/basic_function_calls-basic-function-calls.Po"; else rm -f "$(DEPDIR)/basic_function_calls-basic-function-calls.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='basic-function-calls.c' object='basic_function_calls-basic-function-calls.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(basic_function_calls_CFLAGS) $(CFLAGS) -c -o basic_function_calls-basic-function-calls.o `test -f 'basic-function-calls.c' || echo '$(srcdir)/'`basic-function-calls.c
-
-basic_function_calls-basic-function-calls.obj: basic-function-calls.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(basic_function_calls_CFLAGS) $(CFLAGS) -MT basic_function_calls-basic-function-calls.obj -MD -MP -MF "$(DEPDIR)/basic_function_calls-basic-function-calls.Tpo" -c -o basic_function_calls-basic-function-calls.obj `if test -f 'basic-function-calls.c'; then $(CYGPATH_W) 'basic-function-calls.c'; else $(CYGPATH_W) '$(srcdir)/basic-function-calls.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/basic_function_calls-basic-function-calls.Tpo" "$(DEPDIR)/basic_function_calls-basic-function-calls.Po"; else rm -f "$(DEPDIR)/basic_function_calls-basic-function-calls.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='basic-function-calls.c' object='basic_function_calls-basic-function-calls.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(basic_function_calls_CFLAGS) $(CFLAGS) -c -o basic_function_calls-basic-function-calls.obj `if test -f 'basic-function-calls.c'; then $(CYGPATH_W) 'basic-function-calls.c'; else $(CYGPATH_W) '$(srcdir)/basic-function-calls.c'; fi`
-
-fork-fork.o: fork.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(fork_CFLAGS) $(CFLAGS) -MT fork-fork.o -MD -MP -MF "$(DEPDIR)/fork-fork.Tpo" -c -o fork-fork.o `test -f 'fork.c' || echo '$(srcdir)/'`fork.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/fork-fork.Tpo" "$(DEPDIR)/fork-fork.Po"; else rm -f "$(DEPDIR)/fork-fork.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='fork.c' object='fork-fork.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(fork_CFLAGS) $(CFLAGS) -c -o fork-fork.o `test -f 'fork.c' || echo '$(srcdir)/'`fork.c
-
-fork-fork.obj: fork.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(fork_CFLAGS) $(CFLAGS) -MT fork-fork.obj -MD -MP -MF "$(DEPDIR)/fork-fork.Tpo" -c -o fork-fork.obj `if test -f 'fork.c'; then $(CYGPATH_W) 'fork.c'; else $(CYGPATH_W) '$(srcdir)/fork.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/fork-fork.Tpo" "$(DEPDIR)/fork-fork.Po"; else rm -f "$(DEPDIR)/fork-fork.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='fork.c' object='fork-fork.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(fork_CFLAGS) $(CFLAGS) -c -o fork-fork.obj `if test -f 'fork.c'; then $(CYGPATH_W) 'fork.c'; else $(CYGPATH_W) '$(srcdir)/fork.c'; fi`
-
-registers-registers.o: registers.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(registers_CFLAGS) $(CFLAGS) -MT registers-registers.o -MD -MP -MF "$(DEPDIR)/registers-registers.Tpo" -c -o registers-registers.o `test -f 'registers.c' || echo '$(srcdir)/'`registers.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/registers-registers.Tpo" "$(DEPDIR)/registers-registers.Po"; else rm -f "$(DEPDIR)/registers-registers.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='registers.c' object='registers-registers.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(registers_CFLAGS) $(CFLAGS) -c -o registers-registers.o `test -f 'registers.c' || echo '$(srcdir)/'`registers.c
-
-registers-registers.obj: registers.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(registers_CFLAGS) $(CFLAGS) -MT registers-registers.obj -MD -MP -MF "$(DEPDIR)/registers-registers.Tpo" -c -o registers-registers.obj `if test -f 'registers.c'; then $(CYGPATH_W) 'registers.c'; else $(CYGPATH_W) '$(srcdir)/registers.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/registers-registers.Tpo" "$(DEPDIR)/registers-registers.Po"; else rm -f "$(DEPDIR)/registers-registers.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='registers.c' object='registers-registers.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(registers_CFLAGS) $(CFLAGS) -c -o registers-registers.obj `if test -f 'registers.c'; then $(CYGPATH_W) 'registers.c'; else $(CYGPATH_W) '$(srcdir)/registers.c'; fi`
 uninstall-info-am:
 
 ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)

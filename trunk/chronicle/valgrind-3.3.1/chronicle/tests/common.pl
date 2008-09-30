@@ -114,6 +114,27 @@ sub do_query {
   return @result;
 }
 
+sub find_function_calls {
+  my ($f) = @_;
+  
+  my @v = &do_query( { cmd => 'lookupGlobalFunctions', name => $f } );
+  die unless scalar(@v) == 2;
+  die unless $v[0]->{name} eq $f;
+  die unless $v[0]->{entryPoint};
+  die unless $v[0]->{prologueEnd};
+  die unless $v[0]->{beginTStamp};
+  die unless $v[0]->{endTStamp};
+  my $prologueEnd = $v[0]->{prologueEnd};
+  my $begin = $v[0]->{beginTStamp};
+  my $end = $v[0]->{endTStamp};
+  die unless $begin <= $end;
+
+  @v = &do_query( { cmd => 'scan', beginTStamp => $begin,
+                    endTStamp => $end, map => "INSTR_EXEC",
+                    ranges => [ {start => $prologueEnd, length => 1 } ] } );
+  return grep { $_->{type} && $_->{type} eq "normal"; } @v;
+}
+
 my $test = $0;
 $test =~ s!.check$!!;
 $cmd = "PATH=..:$ENV{PATH} CHRONICLE_DB=$test.db VALGRIND_LIB=../../.in_place ../../coregrind/valgrind --tool=chronicle $test";

@@ -109,7 +109,12 @@ void stringbuf_destroy(CH_StringBuf* buf);
  * it by removing patterns such as 'foo/..' and '/.'.
  */
 void canonicalize_pathname(CH_StringBuf* buf);
-
+/**
+ * Given two directory names (either one of which may be NULL) and a file name,
+ * build the canonical file name and return it as a string. The caller is
+ * responsible for freeing the string.
+ */
+const char* resolve_file_name(const char* d1, const char* d2, const char* f);
 /*
  * malloc/free wrappers that provide run-time logging and also terminate
  * the program instantly whenever out-of-memory is detected, so no error

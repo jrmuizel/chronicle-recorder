@@ -1492,26 +1492,6 @@ static void append_buf(CH_GrowBuf* buf, uint32_t* size, void* data, uint32_t len
   *size += len;
 }
 
-static const char* resolve_file_name(const char* d1, const char* d2, const char* f) {
-  CH_StringBuf buf;
-
-  if (f[0] == '/')
-    return f;
- 
-  stringbuf_init(&buf);
-  if (d2[0] != '/') {
-    stringbuf_append(&buf, d1);
-    stringbuf_append(&buf, "/");
-  }
-  stringbuf_append(&buf, d2);
-  stringbuf_append(&buf, "/");
-  stringbuf_append(&buf, f);
-  
-  canonicalize_pathname(&buf);
-  
-  return stringbuf_finish(&buf);
-}
-
 static int append_file_record(CompilationUnitReader* cu_reader,
     CH_GrowBuf* file_name_ptr_buf,
     uint8_t** ptr, uint8_t* ptr_end, uint32_t dir_count, void* dir_name_array,

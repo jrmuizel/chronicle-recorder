@@ -185,6 +185,9 @@ static void try_exec(Char* path, int len, Char* file, Char** argv)
 static void my_execvp(Char* file, Char** argv)
 {
   HChar* path = VG_(getenv)("PATH");
+
+  try_exec(VG_BINDIR, sizeof(VG_BINDIR) - 1, file, argv);
+
   if (!path) {
     VG_(execv)(file, argv);
     return;

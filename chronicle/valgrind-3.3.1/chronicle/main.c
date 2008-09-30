@@ -1368,9 +1368,8 @@ static Bool convert_offset_to_reg(UInt offset, uint8_t* reg,
   } else if (offset >= CH_OFFSETOF(VexGuestState, guest_FTOP)
              && offset < CH_OFFSETOF(VexGuestState, guest_FTOP) + 4) {
     offset -= CH_OFFSETOF(VexGuestState, guest_FTOP);
-    tl_assert2(offset == 0, "Subaddressing of FTOP? (%d)", offset);
     *reg = CH_X86_FPTOP_REG;
-    *offset_in_reg = 0;
+    *offset_in_reg = offset;
   }
 #else
 #error Unknown architecture
@@ -1968,6 +1967,7 @@ static IRSB* ch_instrument(VgCallbackClosure* closure, IRSB* bb_in, VexGuestLayo
       addStmtToIRSB(bb, st);
       
       if (dirty->mFx == Ifx_Write || dirty->mFx == Ifx_Modify) {
+        /* XXX we really should find a way to generate writes of more than 1 byte at a time */
         for (j = 0; j < dirty->mSize; ++j) {
           IRTemp addr = newIRTemp(bb->tyenv, IR_ptr_type);
           IRExpr* taddr = IRExpr_Binop(IR_ptr_add, dirty->mAddr,
@@ -2006,6 +2006,7 @@ static IRSB* ch_instrument(VgCallbackClosure* closure, IRSB* bb_in, VexGuestLayo
         convert_offsets_to_reg_set(offset, offset + size, reg_set);
         if (e == Ifx_Write || e == Ifx_Modify) {
           int reg;
+          /* XXX we really should find a way to generate writes of more than 1 byte at a time */
           for (reg = 0; reg < 256; ++reg) {
             if (reg_set[reg]) {
               uint8_t log2_bytes = get_full_reg_bytes_log2(reg);

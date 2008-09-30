@@ -1,0 +1,8 @@
+#!/usr/bin/perl -w
+
+require 'common.pl';
+
+# There should be one call to 'is_parent'
+my @calls = find_function_calls('end');
+die unless scalar(@calls) == 1;
+

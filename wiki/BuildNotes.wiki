@@ -27,7 +27,7 @@ CHRONICLE_DB=/tmp/ls.db valgrind --tool=chronicle ls
 }}}
 (This assumes 'make install' installed 'valgrind' somewhere in your $PATH. If not, you'll need to launch to the installed 'valgrind' using its full path.)
 
-To start chronicle-query and issue JSON queries:
+To start chronicle-query and issue [http://chronicle-recorder.googlecode.com/svn/trunk/chronicle/valgrind-3.3.1/chronicle/docs/protocol.html JSON queries]:
 {{{
 chronicle-query --db /tmp/ls.db
 }}}

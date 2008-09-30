@@ -49,7 +49,6 @@ static const int control_out_fd = 1;
 
 static int read_trace_from_input = 0;
 static FILE* pretty_print_out = 0;
-static int build_index = 1;
 static int save_database_name = 1;
 static char* save_file = 0;
 static char* db_file = 0;
@@ -196,8 +195,6 @@ static void parse_options(int argc, char** argv) {
       read_trace_from_input = 1;
     } else if (strcmp(argv[0], "--print") == 0) {
       pretty_print_out = stdout;
-    } else if (strcmp(argv[0], "--noindex") == 0) {
-      build_index = 0;
     } else {
       fatal_error(2, "Invalid option: %s", argv[0]);
     }

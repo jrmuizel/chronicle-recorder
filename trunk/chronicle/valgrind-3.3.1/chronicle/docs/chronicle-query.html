@@ -1,0 +1,31 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>chronicle-query</title>
+</head>
+<body>
+<h1>The <tt>chronicle-query</tt> Tool</h1>
+
+<p><tt>chronicle-query</tt> reads a Chronicle database and DWARF2 debug information from binaries and
+makes the data available via a <a href="protocol.html">JSON query protocol</a> on stdin/stdout.
+
+<p>Normally <tt>chronicle-query</tt> is spawned by a higher-level tool, such as a debugger or analysis
+script. It can also be spawned manually for testing.
+
+<h2>Environment Variables</h2>
+
+<p><strong><tt>CHRONICLE_DB</tt></strong> When set to a file name, <tt>chronicle-query</tt> will read
+the database from this file, unless overridden by the <tt>--db</tt> parameter.
+
+<h2>Command-line Parameters</h2>
+
+<p><strong><tt>--db <em>file</em></tt></strong> Read the database from this file. A database must be
+specified, either using this parameter or the <tt>CHRONICLE_DB</tt> environment variable.
+
+<p><strong><tt>--log</tt></strong> When specified, a file <tt>/tmp/chronicle-log.<em>pid</em></tt>
+is created, where <em>pid</em> is the pid of the <tt>chronicle-query</tt> process, and all input and output 
+is recorded in that file.
+
+</body>
+</html>
+

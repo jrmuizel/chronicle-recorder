@@ -90,6 +90,7 @@ static void debugger_message(const char* severity, QueryThread* q, const char* c
                              const char* en_format, va_list args) {
   JSON_Builder builder;
   char text[10240];
+  char buf[1024];
   int err = errno;
 
   errno = 0;
@@ -104,9 +105,8 @@ static void debugger_message(const char* severity, QueryThread* q, const char* c
   JSON_append_string(&builder, "text", text);
 
   if (err) {
-    char buf[1024];
-
     JSON_append_int(&builder, "errno", err);
+    sprintf(buf, "error %d received, unmappable by strerror", err);
     strerror_r(err, buf, sizeof(buf));
     JSON_append_string(&builder, "errnotext", buf);
   }

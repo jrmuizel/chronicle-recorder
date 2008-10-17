@@ -1467,7 +1467,7 @@ static void allocate_zeroes() {
  */
 static void save_file_name() {
   char cwd[1024];
-  char* fullpath;
+  const char* fullpath;
   char buf[1024];
   FILE* output;
 

@@ -69,6 +69,11 @@
 #define CH_DB_VERSION 0x0001
 
 /**
+ * Version number indicating an incomplete database.
+ */
+#define CH_DB_VERSION_INCOMPLETE 0x0000
+
+/**
  * Timestamps are currently a count of the number of instructions retired.
  */
 typedef uint64_t CH_TStamp;

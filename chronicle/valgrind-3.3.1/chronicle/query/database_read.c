@@ -35,9 +35,15 @@ void db_init_reader(CH_DBFileReader* db, int fd) {
   db->fd = fd;
 
   db_read(db, 0, &db->header, sizeof(db->header));
-  if (db->header.version != CH_DB_VERSION)
-    fatal_error(33, "Database is not the current version");
-  
+  if (strncmp(db->header.magic, "ChronicleDB", 12) != 0)
+    fatal_error(35, "Not a Chronicle database file");
+  if (db->header.version != CH_DB_VERSION) {
+    if (db->header.version == CH_DB_VERSION_INCOMPLETE)
+      fatal_error(34, "Database still open, or indexer was interrupted");
+    else
+      fatal_error(33, "Database is not the current version");
+  }
+
   db->name_buf = db_read_alloc(db, db->header.name_offset,
                                db->header.name_size);
   db->directory_buf =

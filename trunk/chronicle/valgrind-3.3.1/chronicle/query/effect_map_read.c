@@ -687,10 +687,10 @@ static void page_scan_search_history_entry(PageScanClosure* cl,
   } else {
     CH_TStamp base_tstamp = e->first_tstamp + e->final_tstamp_offset;
     uint16_t offset = e->final_offset;
+    uint32_t i;
     if (data) {
       data += e->access_data_count;
     }
-    uint32_t i;
     for (i = e->access_list_count; i > 0; --i) {
       if (data) {
         if (cl->reader->fixed_data_size) {

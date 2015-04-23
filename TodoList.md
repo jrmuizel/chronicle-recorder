@@ -1,0 +1,8 @@
+# TODO #
+
+  * Threading in the query engine is very broken. I designed it poorly; it tends to deadlock when all threads in the thread pool become busy. It shouldn't be too hard to fix since the query engine is basically a read-only system.
+  * Currently all types are per-compilation-unit because that's how DWARF2 does it normally. Common types end up defined many times, once per compilation unit. This means that when you, say, crawl a stack in a big program, things are unreasonably slow because we pull definitions of common types over the socket once each for many compilation units. The query engine should detect types that are identical and report these aliases to the client instead of having to send copies of the type structure. This would be quite easy to do; it's OK for the query engine to sometimes give up and fail to report types as identical when they are, so we can focus identifying type equivalence in the easy cases.
+  * The query engine should check whether mmapped files that we assumed were immutable (e.g., program binaries) have changed since the recording was made, and warn the client if so.
+  * Should have an option to the recorder to tell it not to make any assumptions about immutability, and just copy all file contents to the log.
+  * Need to add register reconstruction caching so that queries for registers at close-together timestamps are fast.
+  * Need to extend the query engine to support discovery of global variable valKeys/typeKeys!

@@ -1,0 +1,5 @@
+Chronicle records every memory and register write in the execution of a Linux process, using Valgrind to instrument execution at the machine code and system call level. These events are indexed and compressed; from the resulting database the Chronicle query tool can efficiently reconstruct the state of memory and/or registers at any point during the execution. Additional queries such as "when was the last write to location X before time T" and "when was location X executed between times T1 and T2" are also supported. This infrastructure has a variety of possible uses, but the most obvious use is as the basis for powerful debuggers.
+
+Chronicle by itself is not all that useful to anyone except tool builders. If you're looking for a useful debugger, try [Chronomancer](http://code.google.com/p/chronomancer), an Eclipse-based UI for debugging C and C++ programs using Chronicle.
+
+Chronicle is released with the permission of Novell. Thanks Novell!
